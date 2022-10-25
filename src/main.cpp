@@ -2,8 +2,8 @@
 // [[Rcpp::depends(RcppArmadillo)]]
 
 // User defined functions: -----------------------------------------------------
-// Source: https://stackoverflow.com/a/24622162 (Simulating Multinomial RVs)
 
+// Step 1: Update the cluster space: -------------------------------------------
 
 // Step 2: Allocate the observation to the existing clusters: ------------------
 // Assume that all clusters share the same hyperparameters (gamma)
