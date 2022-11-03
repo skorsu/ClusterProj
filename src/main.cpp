@@ -3,11 +3,78 @@
 
 // User defined functions: -----------------------------------------------------
 
+// Questions (11/3)
+// - K is fixed? How about we start with K+ = K?
+// - Convert psi to alpha
+// - Reset the number of the clusters
+// - Step 1 fn return: new cluster, new alpha (psi)
+
 // Step 1: Update the cluster space: -------------------------------------------
+// [[Rcpp::export]]
+Rcpp::List expand_cluster(arma::vec old_clus, arma::vec psi, arma::vec xi, 
+                          double a_theta, double b_theta){
+  Rcpp::List result;
+  
+  // The number of the existed cluster
+  arma::vec n_clus_vec = arma::unique(old_clus);
+  int n_clus = n_clus_vec.size();
+  int new_clus = n_clus + 1;
+  
+  // Convert the cluster weight to the alpha.
+  arma::vec alpha_vec = -1 * arma::ones(new_clus);
+  double sum_existed_xi = sum(xi.head_rows(n_clus));
+  double sum_existed_ci = R::rgamma(sum_existed_xi, 1.0);
+  alpha_vec.rows(0, (n_clus - 1)) = psi * sum_existed_ci;
+  
+  // sample an alpha for the new cluster
+  double new_clus_alpha = R::rgamma(xi.at(n_clus), 1.0);
+  alpha_vec.row(new_clus - 1) = new_clus_alpha;
+  
+  // Calculate the acceptance probability
+  arma::vec accept_prob = -1 * arma::ones(psi.size());
+  accept_prob = (new_clus_alpha/alpha_vec) * 
+    (sum(alpha_vec)/(sum(alpha_vec) + new_clus_alpha)) * (a_theta/b_theta);
+  for(int j = 0; j < accept_prob.size(); j++){
+    arma::vec a_prob = {accept_prob.at(j), 1};
+    accept_prob.at(j) = arma::min(a_prob);
+  }
+  
+  // Assign a new cluster
+  arma::vec new_clus_assign = -1 * arma::ones(old_clus.size());
+  for(int i = 0; i < old_clus.size(); i++){
+    double u = arma::randu();
+    if(u <= accept_prob.at(old_clus.at(i) - 1)){
+      new_clus_assign.at(i) = new_clus;
+    } else{
+      new_clus_assign.at(i) = old_clus.at(i);
+    }
+  }
+  
+  // Reset the cluster index
+  arma::uvec clus_elem;
+  int clus_index = 1;
+  arma::vec elem_count = -1 * arma::ones(new_clus);
+  for(int k = 1; k <= new_clus; k++){
+    clus_elem = arma::find(new_clus_assign == k);
+    elem_count.at(k-1) = clus_elem.size();
+    if(clus_elem.size() != 0){
+      new_clus_assign.replace(k, clus_index);
+      clus_index = clus_index + 1;
+    } else {
+      alpha_vec.shed_row(k - 1);
+    }
+  }
+  
+  result["elem_count"] = elem_count;
+  result["new_alpha"] = alpha_vec;
+  result["new_assign"] = new_clus_assign;
+  result["new_clus_weight"] = new_clus_alpha;
+  result["accept_prob"] = accept_prob;
+  return result;
+}
 
 // Step 2: Allocate the observation to the existing clusters: ------------------
 // Assume that all clusters share the same hyperparameters (gamma)
-
 // [[Rcpp::export]]
 arma::vec cluster_assign(arma::vec clus_assign, arma::vec clus_hyper, 
                          arma::mat y, arma::vec data_hyper){

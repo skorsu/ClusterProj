@@ -11,6 +11,21 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
+// expand_cluster
+Rcpp::List expand_cluster(arma::vec old_clus, arma::vec psi, arma::vec xi, double a_theta, double b_theta);
+RcppExport SEXP _ClusterProj_expand_cluster(SEXP old_clusSEXP, SEXP psiSEXP, SEXP xiSEXP, SEXP a_thetaSEXP, SEXP b_thetaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::vec >::type old_clus(old_clusSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type psi(psiSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type xi(xiSEXP);
+    Rcpp::traits::input_parameter< double >::type a_theta(a_thetaSEXP);
+    Rcpp::traits::input_parameter< double >::type b_theta(b_thetaSEXP);
+    rcpp_result_gen = Rcpp::wrap(expand_cluster(old_clus, psi, xi, a_theta, b_theta));
+    return rcpp_result_gen;
+END_RCPP
+}
 // cluster_assign
 arma::vec cluster_assign(arma::vec clus_assign, arma::vec clus_hyper, arma::mat y, arma::vec data_hyper);
 RcppExport SEXP _ClusterProj_cluster_assign(SEXP clus_assignSEXP, SEXP clus_hyperSEXP, SEXP ySEXP, SEXP data_hyperSEXP) {
@@ -50,6 +65,7 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_ClusterProj_expand_cluster", (DL_FUNC) &_ClusterProj_expand_cluster, 5},
     {"_ClusterProj_cluster_assign", (DL_FUNC) &_ClusterProj_cluster_assign, 4},
     {"_ClusterProj_test_fn", (DL_FUNC) &_ClusterProj_test_fn, 1},
     {"_ClusterProj_foo", (DL_FUNC) &_ClusterProj_foo, 2},
