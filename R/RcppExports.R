@@ -5,6 +5,10 @@ expand_cluster <- function(K, inactive_clus, active_clus, old_assign, psi, xi, a
     .Call(`_ClusterProj_expand_cluster`, K, inactive_clus, active_clus, old_assign, psi, xi, a_theta, b_theta)
 }
 
+contract_cluster <- function(K, active_clus, old_assign, psi, xi, a_theta, b_theta) {
+    .Call(`_ClusterProj_contract_cluster`, K, active_clus, old_assign, psi, xi, a_theta, b_theta)
+}
+
 expand_contract <- function(K, old_assign, psi, xi, a_theta, b_theta) {
     .Call(`_ClusterProj_expand_contract`, K, old_assign, psi, xi, a_theta, b_theta)
 }

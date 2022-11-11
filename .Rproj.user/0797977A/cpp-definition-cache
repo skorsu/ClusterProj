@@ -1,25 +1,35 @@
 [
     {
         "file": "/Users/kevinkvp/Desktop/Research/ClusterProj/src/main.cpp",
-        "file_last_write": 1667859866.0,
+        "file_last_write": 1668125637.0,
         "definitions": [
             {
-                "usr": "c:@F@expand_contract#I#$@N@arma@S@Col>#d#",
+                "usr": "c:@F@expand_cluster#I#$@N@Rcpp@S@Vector>#VI13#@N@Rcpp@ST>1#T@PreserveStorage#$@N@arma@S@Col>#i#$@N@arma@S@Col>#d#S2_#S2_#d#d#",
                 "kind": 6,
                 "parent_name": "",
-                "name": "expand_contract(int, arma::vec)",
+                "name": "expand_cluster(int, Rcpp::IntegerVector, arma::uvec, arma::vec, arma::vec, arma::vec, double, double)",
                 "file": "/Users/kevinkvp/Desktop/Research/ClusterProj/src/main.cpp",
-                "line": 21,
+                "line": 20,
                 "column": 12,
                 "hidden": false
             },
             {
-                "usr": "c:@F@expand_cluster#$@N@arma@S@Col>#d#S0_#S0_#d#d#",
+                "usr": "c:@F@contract_cluster#I#$@N@arma@S@Col>#i#$@N@arma@S@Col>#d#S1_#S1_#d#d#",
                 "kind": 6,
                 "parent_name": "",
-                "name": "expand_cluster(arma::vec, arma::vec, arma::vec, double, double)",
+                "name": "contract_cluster(int, arma::uvec, arma::vec, arma::vec, arma::vec, double, double)",
                 "file": "/Users/kevinkvp/Desktop/Research/ClusterProj/src/main.cpp",
-                "line": 57,
+                "line": 78,
+                "column": 12,
+                "hidden": false
+            },
+            {
+                "usr": "c:@F@expand_contract#I#$@N@arma@S@Col>#d#S0_#S0_#d#d#",
+                "kind": 6,
+                "parent_name": "",
+                "name": "expand_contract(int, arma::vec, arma::vec, arma::vec, double, double)",
+                "file": "/Users/kevinkvp/Desktop/Research/ClusterProj/src/main.cpp",
+                "line": 131,
                 "column": 12,
                 "hidden": false
             },
@@ -29,7 +39,7 @@
                 "parent_name": "",
                 "name": "cluster_assign(arma::vec, arma::vec, arma::mat, arma::vec)",
                 "file": "/Users/kevinkvp/Desktop/Research/ClusterProj/src/main.cpp",
-                "line": 122,
+                "line": 257,
                 "column": 11,
                 "hidden": false
             },
@@ -39,7 +49,7 @@
                 "parent_name": "",
                 "name": "test_fn(arma::vec)",
                 "file": "/Users/kevinkvp/Desktop/Research/ClusterProj/src/main.cpp",
-                "line": 189,
+                "line": 324,
                 "column": 12,
                 "hidden": false
             },
@@ -49,7 +59,7 @@
                 "parent_name": "",
                 "name": "foo(double, Rcpp::NumericVector)",
                 "file": "/Users/kevinkvp/Desktop/Research/ClusterProj/src/main.cpp",
-                "line": 211,
+                "line": 346,
                 "column": 21,
                 "hidden": false
             }

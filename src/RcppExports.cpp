@@ -29,6 +29,23 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// contract_cluster
+Rcpp::List contract_cluster(int K, arma::uvec active_clus, arma::vec old_assign, arma::vec psi, arma::vec xi, double a_theta, double b_theta);
+RcppExport SEXP _ClusterProj_contract_cluster(SEXP KSEXP, SEXP active_clusSEXP, SEXP old_assignSEXP, SEXP psiSEXP, SEXP xiSEXP, SEXP a_thetaSEXP, SEXP b_thetaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type K(KSEXP);
+    Rcpp::traits::input_parameter< arma::uvec >::type active_clus(active_clusSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type old_assign(old_assignSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type psi(psiSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type xi(xiSEXP);
+    Rcpp::traits::input_parameter< double >::type a_theta(a_thetaSEXP);
+    Rcpp::traits::input_parameter< double >::type b_theta(b_thetaSEXP);
+    rcpp_result_gen = Rcpp::wrap(contract_cluster(K, active_clus, old_assign, psi, xi, a_theta, b_theta));
+    return rcpp_result_gen;
+END_RCPP
+}
 // expand_contract
 Rcpp::List expand_contract(int K, arma::vec old_assign, arma::vec psi, arma::vec xi, double a_theta, double b_theta);
 RcppExport SEXP _ClusterProj_expand_contract(SEXP KSEXP, SEXP old_assignSEXP, SEXP psiSEXP, SEXP xiSEXP, SEXP a_thetaSEXP, SEXP b_thetaSEXP) {
@@ -85,6 +102,7 @@ END_RCPP
 
 static const R_CallMethodDef CallEntries[] = {
     {"_ClusterProj_expand_cluster", (DL_FUNC) &_ClusterProj_expand_cluster, 8},
+    {"_ClusterProj_contract_cluster", (DL_FUNC) &_ClusterProj_contract_cluster, 7},
     {"_ClusterProj_expand_contract", (DL_FUNC) &_ClusterProj_expand_contract, 6},
     {"_ClusterProj_cluster_assign", (DL_FUNC) &_ClusterProj_cluster_assign, 4},
     {"_ClusterProj_test_fn", (DL_FUNC) &_ClusterProj_test_fn, 1},
