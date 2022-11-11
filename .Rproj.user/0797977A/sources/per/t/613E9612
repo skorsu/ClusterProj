@@ -3,7 +3,7 @@
     "path": "~/Desktop/Research/test_R.R",
     "project_path": null,
     "type": "r_source",
-    "hash": "228232284",
+    "hash": "2089685630",
     "contents": "",
     "dirty": false,
     "created": 1666717095563.0,
@@ -12,15 +12,15 @@
     "properties": {
         "source_window_id": "",
         "Source": "Source",
-        "cursorPosition": "41,0",
-        "scrollLine": "1"
+        "cursorPosition": "19,44",
+        "scrollLine": "0"
     },
     "folds": "",
-    "lastKnownWriteTime": 1668125736,
+    "lastKnownWriteTime": 1668141891,
     "encoding": "UTF-8",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1668125736930,
+    "last_content_update": 1668141891449,
     "read_only": false,
     "read_only_alternatives": []
 }

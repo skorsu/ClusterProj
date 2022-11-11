@@ -13,8 +13,8 @@ expand_contract <- function(K, old_assign, psi, xi, a_theta, b_theta) {
     .Call(`_ClusterProj_expand_contract`, K, old_assign, psi, xi, a_theta, b_theta)
 }
 
-cluster_assign <- function(clus_assign, clus_hyper, y, data_hyper) {
-    .Call(`_ClusterProj_cluster_assign`, clus_assign, clus_hyper, y, data_hyper)
+cluster_assign <- function(old_assign, xi, y, gamma_hyper) {
+    .Call(`_ClusterProj_cluster_assign`, old_assign, xi, y, gamma_hyper)
 }
 
 test_fn <- function(probs) {
