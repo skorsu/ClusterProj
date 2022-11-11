@@ -63,16 +63,16 @@ BEGIN_RCPP
 END_RCPP
 }
 // cluster_assign
-arma::vec cluster_assign(arma::vec clus_assign, arma::vec clus_hyper, arma::mat y, arma::vec data_hyper);
-RcppExport SEXP _ClusterProj_cluster_assign(SEXP clus_assignSEXP, SEXP clus_hyperSEXP, SEXP ySEXP, SEXP data_hyperSEXP) {
+Rcpp::List cluster_assign(arma::vec old_assign, arma::vec xi, arma::mat y, arma::vec gamma_hyper);
+RcppExport SEXP _ClusterProj_cluster_assign(SEXP old_assignSEXP, SEXP xiSEXP, SEXP ySEXP, SEXP gamma_hyperSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::vec >::type clus_assign(clus_assignSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type clus_hyper(clus_hyperSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type old_assign(old_assignSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type xi(xiSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type y(ySEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type data_hyper(data_hyperSEXP);
-    rcpp_result_gen = Rcpp::wrap(cluster_assign(clus_assign, clus_hyper, y, data_hyper));
+    Rcpp::traits::input_parameter< arma::vec >::type gamma_hyper(gamma_hyperSEXP);
+    rcpp_result_gen = Rcpp::wrap(cluster_assign(old_assign, xi, y, gamma_hyper));
     return rcpp_result_gen;
 END_RCPP
 }
