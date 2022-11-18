@@ -5,8 +5,8 @@ expand_step <- function(K, old_assign, alpha, xi, a_theta, b_theta) {
     .Call(`_ClusterProj_expand_step`, K, old_assign, alpha, xi, a_theta, b_theta)
 }
 
-cluster_assign <- function(old_assign, xi, y, gamma_hyper) {
-    .Call(`_ClusterProj_cluster_assign`, old_assign, xi, y, gamma_hyper)
+cluster_assign <- function(K, old_assign, xi, y, gamma_hyper, alpha) {
+    .Call(`_ClusterProj_cluster_assign`, K, old_assign, xi, y, gamma_hyper, alpha)
 }
 
 split_merge <- function(K, old_assign, psi, xi, y, gamma_hyper, a_theta, b_theta) {
