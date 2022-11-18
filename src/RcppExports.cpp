@@ -11,37 +11,19 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
-// expand_function
-Rcpp::List expand_function(int K, Rcpp::IntegerVector inactive_clus, arma::uvec active_clus, arma::vec old_assign, arma::vec alpha, arma::vec xi, double a_theta, double b_theta);
-RcppExport SEXP _ClusterProj_expand_function(SEXP KSEXP, SEXP inactive_clusSEXP, SEXP active_clusSEXP, SEXP old_assignSEXP, SEXP alphaSEXP, SEXP xiSEXP, SEXP a_thetaSEXP, SEXP b_thetaSEXP) {
+// expand_step
+Rcpp::List expand_step(int K, arma::vec old_assign, arma::vec alpha, arma::vec xi, double a_theta, double b_theta);
+RcppExport SEXP _ClusterProj_expand_step(SEXP KSEXP, SEXP old_assignSEXP, SEXP alphaSEXP, SEXP xiSEXP, SEXP a_thetaSEXP, SEXP b_thetaSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< int >::type K(KSEXP);
-    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type inactive_clus(inactive_clusSEXP);
-    Rcpp::traits::input_parameter< arma::uvec >::type active_clus(active_clusSEXP);
     Rcpp::traits::input_parameter< arma::vec >::type old_assign(old_assignSEXP);
     Rcpp::traits::input_parameter< arma::vec >::type alpha(alphaSEXP);
     Rcpp::traits::input_parameter< arma::vec >::type xi(xiSEXP);
     Rcpp::traits::input_parameter< double >::type a_theta(a_thetaSEXP);
     Rcpp::traits::input_parameter< double >::type b_theta(b_thetaSEXP);
-    rcpp_result_gen = Rcpp::wrap(expand_function(K, inactive_clus, active_clus, old_assign, alpha, xi, a_theta, b_theta));
-    return rcpp_result_gen;
-END_RCPP
-}
-// expand_step
-Rcpp::List expand_step(int K, arma::vec old_assign, arma::vec psi, arma::vec xi, double a_theta, double b_theta);
-RcppExport SEXP _ClusterProj_expand_step(SEXP KSEXP, SEXP old_assignSEXP, SEXP psiSEXP, SEXP xiSEXP, SEXP a_thetaSEXP, SEXP b_thetaSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< int >::type K(KSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type old_assign(old_assignSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type psi(psiSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type xi(xiSEXP);
-    Rcpp::traits::input_parameter< double >::type a_theta(a_thetaSEXP);
-    Rcpp::traits::input_parameter< double >::type b_theta(b_thetaSEXP);
-    rcpp_result_gen = Rcpp::wrap(expand_step(K, old_assign, psi, xi, a_theta, b_theta));
+    rcpp_result_gen = Rcpp::wrap(expand_step(K, old_assign, alpha, xi, a_theta, b_theta));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -132,7 +114,6 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_ClusterProj_expand_function", (DL_FUNC) &_ClusterProj_expand_function, 8},
     {"_ClusterProj_expand_step", (DL_FUNC) &_ClusterProj_expand_step, 6},
     {"_ClusterProj_cluster_assign", (DL_FUNC) &_ClusterProj_cluster_assign, 4},
     {"_ClusterProj_split_merge", (DL_FUNC) &_ClusterProj_split_merge, 8},

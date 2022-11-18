@@ -35,7 +35,6 @@ Rcpp::List active_inactive(int K, arma::vec clus_assign){
 }
 
 // Step 1: Update the cluster space: -------------------------------------------
-// [[Rcpp::export]]
 Rcpp::List expand_function(int K, Rcpp::IntegerVector inactive_clus, 
                            arma::uvec active_clus, arma::vec old_assign, 
                            arma::vec alpha, arma::vec xi, double a_theta, 
@@ -86,12 +85,12 @@ Rcpp::List expand_function(int K, Rcpp::IntegerVector inactive_clus,
 }
 
 // [[Rcpp::export]]
-Rcpp::List expand_step(int K, arma::vec old_assign, arma::vec psi,
+Rcpp::List expand_step(int K, arma::vec old_assign, arma::vec alpha,
                        arma::vec xi, double a_theta, double b_theta){
   Rcpp::List result;
   
   /* Input: maximum cluster (K), previous cluster assignment, 
-   *        previous cluster weight (psi), hyperparameter for cluster (xi),
+   *        previous cluster weight (alpha), hyperparameter for cluster (xi),
    *        hyperparameter (a_theta, b_theta).
    * Output: new cluster weight, updated cluster assignment.
    */ 
@@ -100,10 +99,10 @@ Rcpp::List expand_step(int K, arma::vec old_assign, arma::vec psi,
   Rcpp::List List_clusters = active_inactive(K, old_assign);
   Rcpp::IntegerVector inactive_clus = List_clusters["inactive"];
   
-  // Expand (or Contract) Cluster Space
+  // Expand (and/or Contract) Cluster Space
   arma::uvec active_clus = 
     arma::conv_to<arma::uvec>::from(arma::unique(old_assign));
-  result = expand_function(K, inactive_clus, active_clus, old_assign, psi, 
+  result = expand_function(K, inactive_clus, active_clus, old_assign, alpha, 
                            xi, a_theta, b_theta);
   
   return result;
