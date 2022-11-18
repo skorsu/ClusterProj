@@ -35,14 +35,15 @@ Rcpp::List active_inactive(int K, arma::vec clus_assign){
 }
 
 // Step 1: Update the cluster space: -------------------------------------------
+// [[Rcpp::export]]
 Rcpp::List expand_function(int K, Rcpp::IntegerVector inactive_clus, 
                            arma::uvec active_clus, arma::vec old_assign, 
-                           arma::vec psi, arma::vec xi, double a_theta, 
+                           arma::vec alpha, arma::vec xi, double a_theta, 
                            double b_theta){
   Rcpp::List result;
   
   /* Input: maximum cluster (K), inactive clusters, active clusters, 
-   *        previous cluster assignment, previous cluster weight (psi), 
+   *        previous cluster assignment, previous cluster weight (alpha), 
    *        hyperparameter for cluster (xi), hyperparameter (a_theta, b_theta)
    * Output: new cluster weight, updated cluster assignment.
    */
@@ -51,21 +52,14 @@ Rcpp::List expand_function(int K, Rcpp::IntegerVector inactive_clus,
   Rcpp::IntegerVector d_new_clus = Rcpp::sample(inactive_clus, 1);
   int new_clus = d_new_clus[0];
   
-  // Convert the cluster weight (psi) to the alpha.
-  // Since we assume that alpha_j ~ Gamma(xi_j, 1), alpha+ ~ Gamma(sum_xi, 1).
-  arma::vec xi_active = xi.rows(active_clus - 1);
-  double alpha_p = R::rgamma(sum(xi_active), 1);
-  arma::vec alpha_vec = alpha_p * psi;
-  double sum_active_alpha = sum(alpha_vec);
-  
   // Sample alpha for new active cluster
-  alpha_vec.at(new_clus - 1) = R::rgamma(xi.at(new_clus - 1), 1);
+  alpha.at(new_clus - 1) = R::rgamma(xi.at(new_clus - 1), 1);
+  // So, the alpha now will have both previous alpha and the new alpha
   
   // Calculate the acceptance probability
-  arma::vec accept_prob = (alpha_vec.at(new_clus - 1)/alpha_vec) * 
-    (sum_active_alpha/(sum_active_alpha + alpha_vec.at(new_clus - 1))) * 
-    (a_theta/b_theta);
-  arma::vec A = arma::min(accept_prob, arma::ones(alpha_vec.size()));
+  arma::vec accept_prob = (alpha.at(new_clus - 1)/alpha) * 
+    ((sum(alpha) - alpha.at(new_clus - 1))/sum(alpha)) * (a_theta/b_theta);
+  arma::vec A = arma::min(accept_prob, arma::ones(alpha.size()));
   
   // Assign a new cluster
   arma::vec new_assign = -1 * arma::ones(old_assign.size());
@@ -78,16 +72,15 @@ Rcpp::List expand_function(int K, Rcpp::IntegerVector inactive_clus,
     }
   }
   
-  // Adjust the psi vector
+  // Adjust the alpha vector
   arma::vec new_alpha = arma::zeros(K);
   arma::vec new_active_clus = arma::unique(new_assign);
   arma::uvec index_active = arma::conv_to<arma::uvec>::from(new_active_clus) - 1;
-  new_alpha.elem(index_active) = alpha_vec.elem(index_active);
-  arma::vec new_psi = arma::normalise(new_alpha, 1);
+  new_alpha.elem(index_active) = alpha.elem(index_active);
   
   // Return the result
   result["new_assign"] = new_assign;
-  result["new_psi"] = new_psi;
+  result["new_alpha"] = new_alpha;
 
   return result;
 }
