@@ -11,6 +11,34 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
+// allocate_prob
+arma::vec allocate_prob(int i, arma::vec current_assign, arma::vec xi, arma::mat y, arma::vec gamma_hyper, arma::uvec active_clus);
+RcppExport SEXP _ClusterProj_allocate_prob(SEXP iSEXP, SEXP current_assignSEXP, SEXP xiSEXP, SEXP ySEXP, SEXP gamma_hyperSEXP, SEXP active_clusSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type i(iSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type current_assign(current_assignSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type xi(xiSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type y(ySEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type gamma_hyper(gamma_hyperSEXP);
+    Rcpp::traits::input_parameter< arma::uvec >::type active_clus(active_clusSEXP);
+    rcpp_result_gen = Rcpp::wrap(allocate_prob(i, current_assign, xi, y, gamma_hyper, active_clus));
+    return rcpp_result_gen;
+END_RCPP
+}
+// sample_clus
+int sample_clus(arma::vec norm_probs, arma::uvec active_clus);
+RcppExport SEXP _ClusterProj_sample_clus(SEXP norm_probsSEXP, SEXP active_clusSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::vec >::type norm_probs(norm_probsSEXP);
+    Rcpp::traits::input_parameter< arma::uvec >::type active_clus(active_clusSEXP);
+    rcpp_result_gen = Rcpp::wrap(sample_clus(norm_probs, active_clus));
+    return rcpp_result_gen;
+END_RCPP
+}
 // expand_step
 Rcpp::List expand_step(int K, arma::vec old_assign, arma::vec alpha, arma::vec xi, double a_theta, double b_theta);
 RcppExport SEXP _ClusterProj_expand_step(SEXP KSEXP, SEXP old_assignSEXP, SEXP alphaSEXP, SEXP xiSEXP, SEXP a_thetaSEXP, SEXP b_thetaSEXP) {
@@ -62,67 +90,32 @@ BEGIN_RCPP
 END_RCPP
 }
 // cluster_func
-Rcpp::List cluster_func(int K, arma::vec old_assign, arma::vec psi, arma::vec xi, arma::mat y, arma::vec gamma_hyper, double a_theta, double b_theta, int iter);
-RcppExport SEXP _ClusterProj_cluster_func(SEXP KSEXP, SEXP old_assignSEXP, SEXP psiSEXP, SEXP xiSEXP, SEXP ySEXP, SEXP gamma_hyperSEXP, SEXP a_thetaSEXP, SEXP b_thetaSEXP, SEXP iterSEXP) {
+Rcpp::List cluster_func(int K, arma::vec old_assign, arma::vec alpha, arma::vec xi, arma::mat y, arma::vec gamma_hyper, double a_theta, double b_theta, int iter);
+RcppExport SEXP _ClusterProj_cluster_func(SEXP KSEXP, SEXP old_assignSEXP, SEXP alphaSEXP, SEXP xiSEXP, SEXP ySEXP, SEXP gamma_hyperSEXP, SEXP a_thetaSEXP, SEXP b_thetaSEXP, SEXP iterSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< int >::type K(KSEXP);
     Rcpp::traits::input_parameter< arma::vec >::type old_assign(old_assignSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type psi(psiSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type alpha(alphaSEXP);
     Rcpp::traits::input_parameter< arma::vec >::type xi(xiSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type y(ySEXP);
     Rcpp::traits::input_parameter< arma::vec >::type gamma_hyper(gamma_hyperSEXP);
     Rcpp::traits::input_parameter< double >::type a_theta(a_thetaSEXP);
     Rcpp::traits::input_parameter< double >::type b_theta(b_thetaSEXP);
     Rcpp::traits::input_parameter< int >::type iter(iterSEXP);
-    rcpp_result_gen = Rcpp::wrap(cluster_func(K, old_assign, psi, xi, y, gamma_hyper, a_theta, b_theta, iter));
-    return rcpp_result_gen;
-END_RCPP
-}
-// test_fn
-Rcpp::List test_fn(arma::vec probs);
-RcppExport SEXP _ClusterProj_test_fn(SEXP probsSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::vec >::type probs(probsSEXP);
-    rcpp_result_gen = Rcpp::wrap(test_fn(probs));
-    return rcpp_result_gen;
-END_RCPP
-}
-// foo
-Rcpp::NumericVector foo(double t, Rcpp::NumericVector k);
-RcppExport SEXP _ClusterProj_foo(SEXP tSEXP, SEXP kSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< double >::type t(tSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type k(kSEXP);
-    rcpp_result_gen = Rcpp::wrap(foo(t, k));
-    return rcpp_result_gen;
-END_RCPP
-}
-// test_List
-arma::vec test_List(arma::vec test_1);
-RcppExport SEXP _ClusterProj_test_List(SEXP test_1SEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::vec >::type test_1(test_1SEXP);
-    rcpp_result_gen = Rcpp::wrap(test_List(test_1));
+    rcpp_result_gen = Rcpp::wrap(cluster_func(K, old_assign, alpha, xi, y, gamma_hyper, a_theta, b_theta, iter));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_ClusterProj_allocate_prob", (DL_FUNC) &_ClusterProj_allocate_prob, 6},
+    {"_ClusterProj_sample_clus", (DL_FUNC) &_ClusterProj_sample_clus, 2},
     {"_ClusterProj_expand_step", (DL_FUNC) &_ClusterProj_expand_step, 6},
     {"_ClusterProj_cluster_assign", (DL_FUNC) &_ClusterProj_cluster_assign, 6},
     {"_ClusterProj_split_merge", (DL_FUNC) &_ClusterProj_split_merge, 8},
     {"_ClusterProj_cluster_func", (DL_FUNC) &_ClusterProj_cluster_func, 9},
-    {"_ClusterProj_test_fn", (DL_FUNC) &_ClusterProj_test_fn, 1},
-    {"_ClusterProj_foo", (DL_FUNC) &_ClusterProj_foo, 2},
-    {"_ClusterProj_test_List", (DL_FUNC) &_ClusterProj_test_List, 1},
     {NULL, NULL, 0}
 };
 
