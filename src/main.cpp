@@ -10,7 +10,7 @@
 // - For the active cluster that will be an input for `allocate_prob`, 
 
 // Questions: ------------------------------------------------------------------
-// - Multinomial(1, p) = sample(x, 1 , p)?
+// - How to prevent the case when all cluster are already active?
 
 // User-defined function: ------------------------------------------------------
 Rcpp::List active_inactive(int K, arma::vec clus_assign){
@@ -175,8 +175,8 @@ int sample_clus(arma::vec norm_probs, arma::uvec active_clus){
   arma::imat C = arma::imat(k, 1);
   rmultinom(1, norm_probs.begin(), k, C.colptr(0));
   
-  int index = as_scalar(arma::index_max(C));
-  int new_clus = active_clus.at(index);
+  arma::mat mat_index = arma::conv_to<arma::mat>::from(arma::index_max(C));
+  int new_clus = active_clus.at(mat_index(0, 0));
   
   return new_clus;
 }
@@ -247,17 +247,18 @@ Rcpp::List cluster_assign(int K, arma::vec old_assign, arma::vec xi,
   return result;
 }
 
-// Step 3: Split-Merge ---------------------------------------------------------
+// Step 3: Split-Merge: --------------------------------------------------------
 // [[Rcpp::export]]
-Rcpp::List split_merge(int K, arma::vec old_assign, arma::vec psi,
+Rcpp::List split_merge(int K, arma::vec old_assign, arma::vec alpha,
                        arma::vec xi, arma::mat y, arma::vec gamma_hyper, 
-                       double a_theta, double b_theta){
+                       double a_theta, double b_theta, int T_iter = 10){
   Rcpp::List result;
   
   /* Input: maximum cluster (K), previous cluster assignment, 
-   *        previous cluster weight (psi), hyperparameter for cluster (xi),
+   *        previous cluster weight (alpha), hyperparameter for cluster (xi),
    *        data matrix (y), hyperparameter for the data (gamma),
-   *        hyperparameter (a_theta, b_theta).
+   *        hyperparameter (a_theta, b_theta), 
+   *        number of iteration for launch step (T_iter; default = 10).
    * Output: new cluster weight, updated cluster assignment.
    */ 
   
@@ -269,9 +270,10 @@ Rcpp::List split_merge(int K, arma::vec old_assign, arma::vec psi,
   arma::uvec active_clus = List_clusters["active"];
   arma::uvec inactive_clus = List_clusters["inactive"];
   
-  // Create an alpha vector
-  double alpha_p = R::rgamma(sum(xi.elem(arma::find(psi != 0))), 1);
-  arma::vec alpha_vec = alpha_p * psi;
+  // Prevent: The case when the all clusters are active.
+  if(inactive_clus.size() == 0){
+    inactive_clus = active_clus;
+  }
   
   // Sample two observation from the previous assignment.
   Rcpp::IntegerVector obs_index = Rcpp::seq(0, old_assign.size() - 1);
@@ -286,23 +288,99 @@ Rcpp::List split_merge(int K, arma::vec old_assign, arma::vec psi,
   if(old_assign.at(samp_obs[0]) == old_assign.at(samp_obs[1])){
     // when ci = cj, ci = K_new and cj = cj.
     // Sample K_new from inactive cluster and put ci back to that cluster.
-    Rcpp::IntegerVector d_new_clus = 
-      Rcpp::sample(Rcpp::as<Rcpp::IntegerVector>(Rcpp::wrap(inactive_clus)), 1);
-    int K_new = d_new_clus[0];
+    int K_new = 
+      sample_clus(arma::ones(inactive_clus.size())/inactive_clus.size(), 
+                  inactive_clus);
     new_assign.at(samp_obs[0]) = K_new;
     // Adjust the active and inactive vectors
-    active_clus.insert_rows(active_clus.size(), 1);
-    active_clus[active_clus.size() - 1] = K_new;
-    arma::uvec K_new_index = arma::find(inactive_clus == K_new);
-    inactive_clus.shed_row(K_new_index[0]);
+    List_clusters = active_inactive(K, new_assign);
   }
   
   // Randomly assigned the observation in S to be either ci or cj
+  Rcpp::NumericVector sample_cluster = Rcpp::NumericVector(2);
+  sample_cluster[0] = new_assign.at(samp_obs[0]);
+  sample_cluster[1] = new_assign.at(samp_obs[1]);
+  arma::vec launch_init = Rcpp::sample(sample_cluster, S_index.size(), true);
+  arma::uvec active_launch(2);
+  active_launch[0] = new_assign.at(samp_obs[0]);
+  active_launch[1] = new_assign.at(samp_obs[1]);
   
-  result["active_clus"] = active_clus;
-  result["inactive_clus"] = inactive_clus;
-  result["samp_obs"] = samp_obs;
+  for(int s = 0; s < S_index.size(); s++){
+    int current_obs = S_index.at(s);
+    new_assign.at(current_obs) = launch_init.at(s);
+  }
+
+  // Perform a launch step
+  for(int t = 1; t <= T_iter; t++){
+    for(int s = 0; s < S_index.size(); s++){
+      int current_obs = S_index.at(s);
+      arma::vec unnorm_prob = allocate_prob(current_obs, new_assign, xi, 
+                                            y, gamma_hyper, active_launch);
+      new_assign.at(current_obs) = 
+        sample_clus(arma::normalise(unnorm_prob, 1), active_launch);
+    }
+  }
   
+  arma::uvec launch_active = List_clusters["active"];
+  arma::uvec launch_inactive = List_clusters["inactive"];
+  
+  // Prevent: The case when the all clusters are active.
+  if(launch_inactive.size() == 0){
+    launch_inactive = launch_active;
+  }
+  
+  // Begin Split-Merge
+  if(new_assign.at(samp_obs[0]) != new_assign.at(samp_obs[1])){
+    std::printf("merge");
+    // Merge two clusters into one (= cj)
+    for(int s = 0; s < S_index.size(); s++){
+      int current_obs = S_index.at(s);
+      new_assign.at(current_obs) = new_assign.at(samp_obs[1]);
+    }
+  } else {
+    std::printf("split");
+    // Sample K_new_s from inactive cluster and put ci back to that cluster.
+    int K_new_s = 
+      sample_clus(arma::ones(launch_inactive.size())/launch_inactive.size(), 
+                  launch_inactive);
+    new_assign.at(samp_obs[0]) = K_new_s;
+    
+    // Adjust the active and inactive vectors
+    arma::uvec active_split(2);
+    active_split[0] = new_assign.at(samp_obs[0]);
+    active_split[1] = new_assign.at(samp_obs[1]);
+    
+    // Run another cluster allocation
+    for(int s = 0; s < S_index.size(); s++){
+      int current_obs = S_index.at(s);
+      arma::vec unnorm_prob = allocate_prob(current_obs, new_assign, xi, 
+                                            y, gamma_hyper, active_split);
+      new_assign.at(current_obs) = 
+        sample_clus(arma::normalise(unnorm_prob, 1), active_split);
+    }
+  }
+  
+  
+  // Adjust the alpha vector
+  List_clusters = active_inactive(K, new_assign);
+  arma::vec final_active = List_clusters["active"];
+  arma::vec final_inactive = List_clusters["inactive"];
+  arma::vec new_alpha = adjust_alpha(K, new_assign, alpha);
+  
+  for(int i = 0; i < final_active.size(); i++){
+    int current_clus = final_active.at(i);
+    if(new_alpha.at(current_clus - 1) == 0){
+      new_alpha.at(current_clus - 1) = R::rgamma(xi.at(current_clus - 1), 1);
+    }
+  }
+
+  // 
+
+  result["new_assign"] = new_assign;
+  result["f_active"] = final_active;
+  result["f_inactive"] = final_inactive;
+  result["new_alpha"] = new_alpha;
+   
   return result;
 }
 
@@ -366,7 +444,21 @@ Rcpp::List cluster_func(int K, arma::vec old_assign, arma::vec alpha,
 }
 
 // Testing Area: ---------------------------------------------------------------
-
+// Multinomial Distribution
+// [[Rcpp::export]]
+Rcpp::List sample_c(arma::mat x){
+  
+  Rcpp::List result;
+  
+  /* Description: To run a mulyinomial distribution and get the reallocated 
+   *              cluster.
+   * Input: Normalized probability (norm_prob), active cluster
+   * Output: New assigned cluster
+   */
+  
+  result["test"] = x.size();
+  return result;
+}
 
 
 

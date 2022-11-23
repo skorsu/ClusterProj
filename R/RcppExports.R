@@ -17,11 +17,15 @@ cluster_assign <- function(K, old_assign, xi, y, gamma_hyper, alpha) {
     .Call(`_ClusterProj_cluster_assign`, K, old_assign, xi, y, gamma_hyper, alpha)
 }
 
-split_merge <- function(K, old_assign, psi, xi, y, gamma_hyper, a_theta, b_theta) {
-    .Call(`_ClusterProj_split_merge`, K, old_assign, psi, xi, y, gamma_hyper, a_theta, b_theta)
+split_merge <- function(K, old_assign, alpha, xi, y, gamma_hyper, a_theta, b_theta, T_iter = 10L) {
+    .Call(`_ClusterProj_split_merge`, K, old_assign, alpha, xi, y, gamma_hyper, a_theta, b_theta, T_iter)
 }
 
 cluster_func <- function(K, old_assign, alpha, xi, y, gamma_hyper, a_theta, b_theta, iter = 100L) {
     .Call(`_ClusterProj_cluster_func`, K, old_assign, alpha, xi, y, gamma_hyper, a_theta, b_theta, iter)
+}
+
+sample_c <- function(x) {
+    .Call(`_ClusterProj_sample_c`, x)
 }
 
