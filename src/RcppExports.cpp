@@ -91,8 +91,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // cluster_func
-Rcpp::List cluster_func(int K, arma::vec old_assign, arma::vec alpha, arma::vec xi, arma::mat y, arma::vec gamma_hyper, double a_theta, double b_theta, int iter);
-RcppExport SEXP _ClusterProj_cluster_func(SEXP KSEXP, SEXP old_assignSEXP, SEXP alphaSEXP, SEXP xiSEXP, SEXP ySEXP, SEXP gamma_hyperSEXP, SEXP a_thetaSEXP, SEXP b_thetaSEXP, SEXP iterSEXP) {
+Rcpp::List cluster_func(int K, arma::vec old_assign, arma::vec alpha, arma::vec xi, arma::mat y, arma::vec gamma_hyper, double a_theta, double b_theta, int sm_iter, int all_iter);
+RcppExport SEXP _ClusterProj_cluster_func(SEXP KSEXP, SEXP old_assignSEXP, SEXP alphaSEXP, SEXP xiSEXP, SEXP ySEXP, SEXP gamma_hyperSEXP, SEXP a_thetaSEXP, SEXP b_thetaSEXP, SEXP sm_iterSEXP, SEXP all_iterSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -104,19 +104,9 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< arma::vec >::type gamma_hyper(gamma_hyperSEXP);
     Rcpp::traits::input_parameter< double >::type a_theta(a_thetaSEXP);
     Rcpp::traits::input_parameter< double >::type b_theta(b_thetaSEXP);
-    Rcpp::traits::input_parameter< int >::type iter(iterSEXP);
-    rcpp_result_gen = Rcpp::wrap(cluster_func(K, old_assign, alpha, xi, y, gamma_hyper, a_theta, b_theta, iter));
-    return rcpp_result_gen;
-END_RCPP
-}
-// sample_c
-Rcpp::List sample_c(arma::mat x);
-RcppExport SEXP _ClusterProj_sample_c(SEXP xSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::mat >::type x(xSEXP);
-    rcpp_result_gen = Rcpp::wrap(sample_c(x));
+    Rcpp::traits::input_parameter< int >::type sm_iter(sm_iterSEXP);
+    Rcpp::traits::input_parameter< int >::type all_iter(all_iterSEXP);
+    rcpp_result_gen = Rcpp::wrap(cluster_func(K, old_assign, alpha, xi, y, gamma_hyper, a_theta, b_theta, sm_iter, all_iter));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -127,8 +117,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_ClusterProj_expand_step", (DL_FUNC) &_ClusterProj_expand_step, 6},
     {"_ClusterProj_cluster_assign", (DL_FUNC) &_ClusterProj_cluster_assign, 6},
     {"_ClusterProj_split_merge", (DL_FUNC) &_ClusterProj_split_merge, 9},
-    {"_ClusterProj_cluster_func", (DL_FUNC) &_ClusterProj_cluster_func, 9},
-    {"_ClusterProj_sample_c", (DL_FUNC) &_ClusterProj_sample_c, 1},
+    {"_ClusterProj_cluster_func", (DL_FUNC) &_ClusterProj_cluster_func, 10},
     {NULL, NULL, 0}
 };
 

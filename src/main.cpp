@@ -7,7 +7,6 @@
 // - We should get the index of the existed cluster first in most step.
 // - Instead of interested in psi, we will use alpha vector instead.
 // - alpha vector is K dimension.
-// - For the active cluster that will be an input for `allocate_prob`, 
 
 // Questions: ------------------------------------------------------------------
 // - How to prevent the case when all cluster are already active?
@@ -329,16 +328,17 @@ Rcpp::List split_merge(int K, arma::vec old_assign, arma::vec alpha,
     launch_inactive = launch_active;
   }
   
+  int sp_indicator = 0; // Split = 1; Merge = 0
+  
   // Begin Split-Merge
   if(new_assign.at(samp_obs[0]) != new_assign.at(samp_obs[1])){
-    std::printf("merge");
     // Merge two clusters into one (= cj)
     for(int s = 0; s < S_index.size(); s++){
       int current_obs = S_index.at(s);
       new_assign.at(current_obs) = new_assign.at(samp_obs[1]);
     }
   } else {
-    std::printf("split");
+    sp_indicator = 1;
     // Sample K_new_s from inactive cluster and put ci back to that cluster.
     int K_new_s = 
       sample_clus(arma::ones(launch_inactive.size())/launch_inactive.size(), 
@@ -360,7 +360,6 @@ Rcpp::List split_merge(int K, arma::vec old_assign, arma::vec alpha,
     }
   }
   
-  
   // Adjust the alpha vector
   List_clusters = active_inactive(K, new_assign);
   arma::vec final_active = List_clusters["active"];
@@ -374,13 +373,53 @@ Rcpp::List split_merge(int K, arma::vec old_assign, arma::vec alpha,
     }
   }
 
-  // 
+  // MH update (log form)
+  // Consider alpha
+  double accept_prob = 0.0;
+  for(int k = 0; k < alpha.size(); k++){
+    if(alpha.at(k) < new_alpha.at(k)){ 
+      // Proposed a non-zero alpha (active cluster from inactive)
+      accept_prob = accept_prob + 
+        R::dgamma(new_alpha.at(k), xi.at(k), 1.0, 1) + 
+        log(a_theta) - log(b_theta);
+    } else if(alpha.at(k) > new_alpha.at(k)){
+      // Proposed a zero alpha (inactive cluster from active)
+      accept_prob = accept_prob - 
+        R::dgamma(alpha.at(k), xi.at(k), 1.0, 1) +
+        log(b_theta) - log(a_theta);
+    }
+  }
+  
+  // Consider the multinomial distribution
+  double old_multi = 1.0;
+  double new_multi = 1.0;
+  for(int s = 0; s < S_index.size(); s++){
+    int current_obs = S_index.at(s);
+    old_multi = old_multi + log(alpha.at(old_assign.at(current_obs) - 1));
+    new_multi = new_multi + log(new_alpha.at(new_assign.at(current_obs) - 1));
+  }
+  
+  double proposal = log(2) * (S_index.size() - 2);
+  
+  if(sp_indicator == 0){
+    // Merge
+    accept_prob = accept_prob + proposal;
+  } else {
+    // Split
+    accept_prob = accept_prob - proposal;
+  }
+  
+  arma::vec A_vec = arma::zeros(2);
+  A_vec[0] = accept_prob + new_multi - old_multi;
+  double log_u = log(R::runif(0, 1));
+  if(log_u > A_vec.min()){
+    new_alpha = alpha;
+    new_assign = old_assign;
+  };
 
   result["new_assign"] = new_assign;
-  result["f_active"] = final_active;
-  result["f_inactive"] = final_inactive;
   result["new_alpha"] = new_alpha;
-   
+  
   return result;
 }
 
@@ -388,31 +427,34 @@ Rcpp::List split_merge(int K, arma::vec old_assign, arma::vec alpha,
 // [[Rcpp::export]]
 Rcpp::List cluster_func(int K, arma::vec old_assign, arma::vec alpha,
                         arma::vec xi, arma::mat y, arma::vec gamma_hyper, 
-                        double a_theta, double b_theta, int iter = 100){
+                        double a_theta, double b_theta, int sm_iter = 10, 
+                        int all_iter = 100){
   Rcpp::List result;
   
   /* Input: maximum cluster (K), previous cluster assignment, 
    *        previous cluster weight (alpha), hyperparameter for cluster (xi),
    *        data matrix (y), hyperparameter for the data (gamma),
-   *        hyperparameter (a_theta, b_theta), iteration (default at 100).
+   *        hyperparameter (a_theta, b_theta), 
+   *        iteration for the split-merge process (sm_iter; default = 10)
+   *        overall iteration (all_iter; default at 100).
    * Output: new cluster weight, updated cluster assignment, 
    *         number of active cluster in each iteration.
    */ 
   
   // Storing the active cluster for each iteration
-  arma::vec n_active = -1 * arma::ones(iter + 1);
+  arma::vec n_active = -1 * arma::ones(all_iter + 1);
   arma::vec dum_unique = arma::unique(old_assign);
   n_active.row(0) = dum_unique.size();
   
   // Storing the cluster assignment for each iteration
-  arma::mat clus_assign = -1 * arma::ones(old_assign.size(), iter + 1);
+  arma::mat clus_assign = -1 * arma::ones(old_assign.size(), all_iter + 1);
   clus_assign.col(0) = old_assign;
   
   // Storing alpha vector
-  arma::mat alpha_update = -1 * arma::ones(alpha.size(), iter + 1);
+  arma::mat alpha_update = -1 * arma::ones(alpha.size(), all_iter + 1);
   alpha_update.col(0) = alpha;
   
-  for(int i = 0; i < iter; i++){
+  for(int i = 0; i < all_iter; i++){
     // Initial value
     arma::vec current_assign = clus_assign.col(i);
     arma::vec current_alpha = alpha_update.col(i);
@@ -428,11 +470,17 @@ Rcpp::List cluster_func(int K, arma::vec old_assign, arma::vec alpha,
                                           gamma_hyper, expand_alpha);
     arma::vec reallocate_assign = result_s2["new_assign"];
     arma::vec reallocate_alpha = result_s2["new_alpha"];
+    
+    // Step 3: Split-Merge
+    Rcpp::List result_s3 = split_merge(K, reallocate_assign, reallocate_alpha,
+                           xi, y, gamma_hyper, a_theta, b_theta, sm_iter);
+    arma::vec sm_assign = result_s3["new_assign"];
+    arma::vec sm_alpha = result_s3["new_alpha"];
 
     // Record the result
-    arma::vec n_unique_expand = arma::unique(expand_assign);
-    clus_assign.col(i+1) = expand_assign;
-    alpha_update.col(i+1) = expand_alpha;
+    arma::vec n_unique_expand = arma::unique(sm_assign);
+    clus_assign.col(i+1) = sm_assign;
+    alpha_update.col(i+1) = sm_alpha;
     n_active.row(i+1) = n_unique_expand.size();
   }
   
@@ -444,23 +492,6 @@ Rcpp::List cluster_func(int K, arma::vec old_assign, arma::vec alpha,
 }
 
 // Testing Area: ---------------------------------------------------------------
-// Multinomial Distribution
-// [[Rcpp::export]]
-Rcpp::List sample_c(arma::mat x){
-  
-  Rcpp::List result;
-  
-  /* Description: To run a mulyinomial distribution and get the reallocated 
-   *              cluster.
-   * Input: Normalized probability (norm_prob), active cluster
-   * Output: New assigned cluster
-   */
-  
-  result["test"] = x.size();
-  return result;
-}
-
-
 
 
 
