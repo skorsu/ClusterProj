@@ -8,8 +8,12 @@
 // - Instead of interested in psi, we will use alpha vector instead.
 // - alpha vector is K dimension.
 
+// Tasks: ----------------------------------------------------------------------
+// * Update a code to be suitable with cluster gamma vectors.
+// * Follows Matt's Email: sampling until merge for step 3
+
 // Questions: ------------------------------------------------------------------
-// - How to prevent the case when all cluster are already active?
+// 
 
 // User-defined function: ------------------------------------------------------
 Rcpp::List active_inactive(int K, arma::vec clus_assign){
