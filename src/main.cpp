@@ -9,8 +9,10 @@
 // - alpha vector is K dimension.
 
 // Tasks: ----------------------------------------------------------------------
-// * Update a code to be suitable with cluster gamma vectors.
+// * Step 1: Update a code to be suitable with cluster gamma vectors.
+// * Step 2: Update a code to be suitable with cluster gamma vectors.
 // * Follows Matt's Email: sampling until merge for step 3
+// * Step 4: Update other parameters. (?)
 
 // Questions: ------------------------------------------------------------------
 // 
@@ -35,6 +37,30 @@ Rcpp::List active_inactive(int K, arma::vec clus_assign){
   result["inactive"] = inactive_clus;
 
   return result;
+}
+
+// [[Rcpp::export]]
+double density_gamma(Rcpp::NumericVector yi, Rcpp::NumericVector gamma_k){
+  double result;
+  
+  /* Description: This is the function for calculating p(yi|gamma_k)
+   * Input: Data point (yi) and hyperparameter for that cluster (gamma_k)
+   * Output: p(yi|gamma_k)
+   */
+  
+  // Calculate the vector for yi + gamma_k
+  Rcpp::NumericVector yi_gamma_k = yi + gamma_k;
+  
+  arma::vec gamma_gamma_k = gamma(gamma_k);
+  Rcpp::NumericVector sum_gamma_k = {sum(gamma_k)};
+  arma::vec gamma_sum_gamma_k = gamma(sum_gamma_k);
+  
+  arma::vec gamma_yi_gamma_k = gamma(yi_gamma_k);
+  Rcpp::NumericVector sum_yi_gamma_k = {sum(yi_gamma_k)};
+  arma::vec gamma_sum_yi_gamma_k = gamma(sum_yi_gamma_k);
+  
+  return (gamma_sum_gamma_k/arma::prod(gamma_gamma_k))[0] *
+    (arma::prod(gamma_yi_gamma_k)/gamma_sum_yi_gamma_k)[0];
 }
 
 // [[Rcpp::export]]

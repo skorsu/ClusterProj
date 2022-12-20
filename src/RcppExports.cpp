@@ -11,6 +11,18 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
+// density_gamma
+double density_gamma(Rcpp::NumericVector yi, Rcpp::NumericVector gamma_k);
+RcppExport SEXP _ClusterProj_density_gamma(SEXP yiSEXP, SEXP gamma_kSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type yi(yiSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type gamma_k(gamma_kSEXP);
+    rcpp_result_gen = Rcpp::wrap(density_gamma(yi, gamma_k));
+    return rcpp_result_gen;
+END_RCPP
+}
 // allocate_prob
 arma::vec allocate_prob(int i, arma::vec current_assign, arma::vec xi, arma::mat y, arma::vec gamma_hyper, arma::uvec active_clus);
 RcppExport SEXP _ClusterProj_allocate_prob(SEXP iSEXP, SEXP current_assignSEXP, SEXP xiSEXP, SEXP ySEXP, SEXP gamma_hyperSEXP, SEXP active_clusSEXP) {
@@ -112,6 +124,7 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_ClusterProj_density_gamma", (DL_FUNC) &_ClusterProj_density_gamma, 2},
     {"_ClusterProj_allocate_prob", (DL_FUNC) &_ClusterProj_allocate_prob, 6},
     {"_ClusterProj_sample_clus", (DL_FUNC) &_ClusterProj_sample_clus, 2},
     {"_ClusterProj_expand_step", (DL_FUNC) &_ClusterProj_expand_step, 6},
