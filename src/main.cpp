@@ -7,15 +7,16 @@
 // - We should get the index of the existed cluster first in most step.
 // - Instead of interested in psi, we will use alpha vector instead.
 // - alpha vector is K dimension.
+// - gamma_hyper is a matrix with K by J dimension.
 
 // Tasks: ----------------------------------------------------------------------
-// * Step 2: Update a code to be suitable with cluster gamma vectors.
-// * Follows Matt's Email: sampling until merge for step 3
 // * Step 4: Update other parameters. (?)
 
 // Questions: ------------------------------------------------------------------
 // - For Step 1, if all clusters are already active, 
 //   can we randomly select one of the active cluster?
+// - For Step 3, split-merge process when ci = cj and 
+//   all clusters are already active.
 
 // User-defined function: ------------------------------------------------------
 // [[Rcpp::export]]
@@ -264,6 +265,187 @@ Rcpp::List cluster_assign(int K, arma::vec old_assign, arma::vec xi,
   return result;
 }
 
+// Step 3: Split-Merge: --------------------------------------------------------
+// [[Rcpp::export]]
+Rcpp::List split_merge(int K, arma::vec old_assign, arma::vec alpha,
+                       arma::vec xi, arma::mat y, arma::mat gamma_hyper, 
+                       double a_theta, double b_theta, int sm_iter = 10){
+  Rcpp::List result;
+  
+  /* Input: maximum cluster (K), previous cluster assignment, 
+   *        previous cluster weight (alpha), hyperparameter for cluster (xi),
+   *        data matrix (y), hyperparameter for the data (gamma),
+   *        hyperparameter (a_theta, b_theta), 
+   *        number of iteration for launch step (sm_iter; default = 10).
+   * Output: new cluster weight, updated cluster assignment.
+   */ 
+  
+  // Vector for a new assignment
+  arma::vec new_assign = old_assign;
+  arma::vec dum_alpha = alpha;
+  
+  // Create the set of active and inactive cluster
+  Rcpp::List List_clusters = active_inactive(K, old_assign);
+  arma::uvec active_clus = List_clusters["active"];
+  arma::uvec inactive_clus = List_clusters["inactive"];
+  
+  // Sample two observations from the data.
+  Rcpp::IntegerVector obs_index = Rcpp::seq(0, old_assign.size() - 1);
+  Rcpp::IntegerVector samp_obs = Rcpp::sample(obs_index, 2);
+  
+  int obs_i = samp_obs[0];
+  int obs_j = samp_obs[1];
+  int c_i = old_assign.at(obs_i);
+  int c_j = old_assign.at(obs_j);
+  
+  if(active_clus.size() == K){
+    while(c_i == c_j){
+      samp_obs = Rcpp::sample(obs_index, 2);
+      obs_i = samp_obs[0];
+      obs_j = samp_obs[1];
+      c_i = old_assign.at(obs_i);
+      c_j = old_assign.at(obs_j);
+    }
+  }
+  
+  // Subset only sample that have the same cluster as ci and cj
+  arma::uvec S_index = arma::find(old_assign == c_i or old_assign == c_j);
+  
+  // Launch Step
+  if(c_i == c_j){ // Split (when ci = cj, ci = K_new and cj = cj)
+    // Select K_new
+    arma::vec clus_prob = arma::ones(inactive_clus.size())/inactive_clus.size();
+    c_i = sample_clus(clus_prob, inactive_clus);
+    new_assign.at(obs_i) = c_i;
+    dum_alpha.at(c_i - 1) = R::rgamma(xi.at(c_i - 1), 1);
+  } 
+  
+  Rcpp::List List_launch = active_inactive(5, new_assign.elem(S_index));
+  arma::uvec active_launch = List_launch["active"];
+  
+  // Randomly assigned the observation in S to be either ci or cj
+  Rcpp::NumericVector sample_cluster = Rcpp::NumericVector(2);
+  sample_cluster[0] = c_i;
+  sample_cluster[1] = c_j;
+  arma::vec launch_init = Rcpp::sample(sample_cluster, S_index.size(), true);
+  
+  for(int s = 0; s < S_index.size(); s++){
+    int current_obs = S_index.at(s);
+    new_assign.at(current_obs) = launch_init.at(s);
+  }
+  
+  // Reassign in the Launch step
+  for(int t = 0; t < sm_iter; t++){ // Loop in Launch
+    for(int i = 0; i < S_index.size(); i++){ // Loop for each elements
+      int s = S_index[i];
+      arma::vec unnorm_prob = allocate_prob(s, new_assign, xi, y,
+                                            gamma_hyper, active_launch);
+      arma::vec norm_prob = arma::normalise(unnorm_prob, 1);
+      new_assign.at(s) = sample_clus(norm_prob, active_launch);
+    }
+  }
+  
+  // Update the list of active and inactive cluster.
+  Rcpp::List List_sm = active_inactive(5, new_assign);
+  arma::uvec active_sm = List_sm["active"];
+  arma::uvec inactive_sm = List_sm["inactive"];
+  
+  c_i = new_assign.at(obs_i);
+  c_j = new_assign.at(obs_j);
+  
+  if(active_sm.size() == K){
+    while(c_i == c_j){
+      samp_obs = Rcpp::sample(obs_index, 2);
+      obs_i = samp_obs[0];
+      obs_j = samp_obs[1];
+      c_i = new_assign.at(obs_i);
+      c_j = new_assign.at(obs_j);
+    }
+  }
+  
+  // Subset only sample that have the same cluster as ci and cj
+  arma::uvec SM_index = arma::find(new_assign == c_i or new_assign == c_j);
+  
+  Rcpp::List sm_launch = active_inactive(5, new_assign.elem(SM_index));
+  arma::uvec active_sm_launch = sm_launch["active"];
+  
+  int split_merge;
+  
+  // Split-Merge Step
+  if(c_i == c_j){ // Split
+    split_merge = 1;
+    // Select K_new
+    arma::vec clus_prob = arma::ones(inactive_sm.size())/inactive_sm.size();
+    c_i = sample_clus(clus_prob, inactive_sm);
+    new_assign.at(obs_i) = c_i;
+    dum_alpha.at(c_i - 1) = R::rgamma(xi.at(c_i - 1), 1);
+    
+    // Reassign the element in SM_index
+    for(int i = 0; i < SM_index.size(); i++){ // Loop for each elements
+      int s = SM_index[i];
+      arma::vec unnorm_prob = allocate_prob(s, new_assign, xi, y,
+                                            gamma_hyper, active_sm_launch);
+      arma::vec norm_prob = arma::normalise(unnorm_prob, 1);
+      new_assign.at(s) = sample_clus(norm_prob, active_sm_launch);
+    }
+    
+  } else { // Merge (when ci != cj, ci = cj, which is set to cj)
+    split_merge = 0;
+    new_assign.elem(SM_index).fill(c_j);
+  }
+  
+  // Adjust an alpha vector
+  arma::vec new_alpha = adjust_alpha(K, new_assign, dum_alpha);
+  
+  // MH update (log form)
+  double accept_prob = 0.0;
+  double log_proposed = (SM_index.size() - 2) * log(0.5);
+  
+  // Consider alpha
+  for(int k = 0; k < alpha.size(); k++){
+    if(alpha.at(k) < new_alpha.at(k)){ 
+      // Proposed a non-zero alpha (active cluster from inactive)
+      accept_prob = accept_prob + 
+        R::dgamma(new_alpha.at(k), xi.at(k), 1.0, 1) + 
+        log(a_theta) - log(b_theta);
+    } else if(alpha.at(k) > new_alpha.at(k)){
+      // Proposed a zero alpha (inactive cluster from active)
+      accept_prob = accept_prob - 
+        R::dgamma(alpha.at(k), xi.at(k), 1.0, 1) +
+        log(b_theta) - log(a_theta);
+    }
+  }
+  
+  // Consider the proposal distribution
+  if(split_merge == 0){ // Merge
+    accept_prob = accept_prob - log_proposed;
+  } else { // Split
+    accept_prob = accept_prob + log_proposed;
+  }
+  
+  // Consider the multinomial distribution
+  double old_multi = 0.0;
+  double new_multi = 0.0;
+  for(int s = 0; s < S_index.size(); s++){
+    int current_obs = S_index.at(s);
+    old_multi = old_multi + log(alpha.at(old_assign.at(current_obs) - 1));
+    new_multi = new_multi + log(new_alpha.at(new_assign.at(current_obs) - 1));
+  }
+  
+  accept_prob = accept_prob + new_multi - old_multi;
+  double log_A = std::min(0.0, accept_prob);
+  double log_U = log(arma::randu());
+  if(log_U > log_A){
+    new_alpha = alpha;
+    new_assign = old_assign;
+  }
+  
+  result["new_alpha"] = new_alpha;
+  result["new_assign"] = new_assign;
+  
+  return result;
+}
+
 // Final Function: -------------------------------------------------------------
 // [[Rcpp::export]]
 Rcpp::List cluster_func(int K, arma::vec old_assign, arma::vec alpha,
@@ -312,14 +494,18 @@ Rcpp::List cluster_func(int K, arma::vec old_assign, arma::vec alpha,
     arma::vec reallocate_assign = result_s2["new_assign"];
     arma::vec reallocate_alpha = result_s2["new_alpha"];
     
+    // Step 3: Split-Merge
+    Rcpp::List result_s3 = split_merge(K, reallocate_assign, reallocate_alpha,
+                                       xi, y, gamma_hyper, a_theta, b_theta, 
+                                       sm_iter);
+    arma::vec sm_assign = result_s3["new_assign"];
+    arma::vec sm_alpha = result_s3["new_alpha"];
+    
     // Record the result
-    arma::vec n_unique_expand = arma::unique(reallocate_assign);
-    clus_assign.col(i+1) = reallocate_assign;
-    alpha_update.col(i+1) = reallocate_alpha;
-    n_active.row(i+1) = n_unique_expand.size();
+    clus_assign.col(i+1) = sm_assign;
+    alpha_update.col(i+1) = sm_alpha;
   }
   
-  result["n_active"] = n_active;
   result["alpha_update"] = alpha_update;
   result["clus_assign"] = clus_assign;
   

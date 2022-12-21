@@ -97,6 +97,25 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// split_merge
+Rcpp::List split_merge(int K, arma::vec old_assign, arma::vec alpha, arma::vec xi, arma::mat y, arma::mat gamma_hyper, double a_theta, double b_theta, int sm_iter);
+RcppExport SEXP _ClusterProj_split_merge(SEXP KSEXP, SEXP old_assignSEXP, SEXP alphaSEXP, SEXP xiSEXP, SEXP ySEXP, SEXP gamma_hyperSEXP, SEXP a_thetaSEXP, SEXP b_thetaSEXP, SEXP sm_iterSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type K(KSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type old_assign(old_assignSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type alpha(alphaSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type xi(xiSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type y(ySEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type gamma_hyper(gamma_hyperSEXP);
+    Rcpp::traits::input_parameter< double >::type a_theta(a_thetaSEXP);
+    Rcpp::traits::input_parameter< double >::type b_theta(b_thetaSEXP);
+    Rcpp::traits::input_parameter< int >::type sm_iter(sm_iterSEXP);
+    rcpp_result_gen = Rcpp::wrap(split_merge(K, old_assign, alpha, xi, y, gamma_hyper, a_theta, b_theta, sm_iter));
+    return rcpp_result_gen;
+END_RCPP
+}
 // cluster_func
 Rcpp::List cluster_func(int K, arma::vec old_assign, arma::vec alpha, arma::vec xi, arma::mat y, arma::mat gamma_hyper, double a_theta, double b_theta, int sm_iter, int all_iter);
 RcppExport SEXP _ClusterProj_cluster_func(SEXP KSEXP, SEXP old_assignSEXP, SEXP alphaSEXP, SEXP xiSEXP, SEXP ySEXP, SEXP gamma_hyperSEXP, SEXP a_thetaSEXP, SEXP b_thetaSEXP, SEXP sm_iterSEXP, SEXP all_iterSEXP) {
@@ -125,6 +144,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_ClusterProj_allocate_prob", (DL_FUNC) &_ClusterProj_allocate_prob, 6},
     {"_ClusterProj_expand_step", (DL_FUNC) &_ClusterProj_expand_step, 8},
     {"_ClusterProj_cluster_assign", (DL_FUNC) &_ClusterProj_cluster_assign, 6},
+    {"_ClusterProj_split_merge", (DL_FUNC) &_ClusterProj_split_merge, 9},
     {"_ClusterProj_cluster_func", (DL_FUNC) &_ClusterProj_cluster_func, 10},
     {NULL, NULL, 0}
 };
