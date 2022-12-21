@@ -166,6 +166,32 @@ arma::vec adjust_alpha(int K, arma::vec clus_assign, arma::vec alpha_vec){
   return a_alpha;
 }
 
+// [[Rcpp::export]]
+arma::mat rdirichlet_cpp(int num_samples, arma::vec alpha_m){
+  int distribution_size = alpha_m.n_elem;
+  // each row will be a draw from a Dirichlet
+  arma::mat distribution = arma::zeros(num_samples, distribution_size);
+  
+  /* Description: Sample from dirichlet distribution.
+   * Credit: https://www.mjdenny.com/blog.html
+   */
+  
+  for (int i = 0; i < num_samples; ++i){
+    double sum_term = 0;
+    // loop through the distribution and draw Gamma variables
+    for (int j = 0; j < distribution_size; ++j){
+      double cur = R::rgamma(alpha_m[j],1.0);
+      distribution(i,j) = cur;
+      sum_term += cur;
+    }
+    // now normalize
+    for (int j = 0; j < distribution_size; ++j) {
+      distribution(i,j) = distribution(i,j)/sum_term;
+    }
+  }
+  return(distribution);
+}
+
 // Step 1: Update the cluster space: -------------------------------------------
 // [[Rcpp::export]]
 Rcpp::List expand_step(int K, arma::vec old_assign, arma::vec alpha,
@@ -426,10 +452,9 @@ Rcpp::List split_merge(int K, arma::vec old_assign, arma::vec alpha,
   // Consider the multinomial distribution
   double old_multi = 0.0;
   double new_multi = 0.0;
-  for(int s = 0; s < S_index.size(); s++){
-    int current_obs = S_index.at(s);
-    old_multi = old_multi + log(alpha.at(old_assign.at(current_obs) - 1));
-    new_multi = new_multi + log(new_alpha.at(new_assign.at(current_obs) - 1));
+  for(int i = 0; i < old_assign.size(); i++){
+    old_multi = old_multi + log(alpha.at(old_assign.at(i) - 1));
+    new_multi = new_multi + log(new_alpha.at(new_assign.at(i) - 1));
   }
   
   accept_prob = accept_prob + new_multi - old_multi;
@@ -444,6 +469,40 @@ Rcpp::List split_merge(int K, arma::vec old_assign, arma::vec alpha,
   result["new_assign"] = new_assign;
   
   return result;
+}
+
+// Step 4: Update alpha: -------------------------------------------------------
+// [[Rcpp::export]]
+arma::vec update_alpha(int K, arma::vec alpha, arma::vec xi, 
+                       arma::vec old_assign){
+
+  arma::vec new_alpha = alpha;
+  
+  /* Input: maximum cluster (K),previous cluster weight (alpha), 
+   *        hyperparameter for cluster (xi), 
+   *        previous cluster assignment (old_assign).
+   * Output: new cluster weight.
+   */
+  
+  Rcpp::List List_active = active_inactive(K, old_assign);
+  arma::uvec active_clus = List_active["active"];
+  
+  arma::vec n_xi_elem = -1.0 * arma::ones(active_clus.size());
+  
+  for(int k = 0; k < active_clus.size(); k++){
+    int clus_current = active_clus.at(k);
+    arma::uvec obs_current_index = old_assign == clus_current;
+    n_xi_elem.at(k) = sum(obs_current_index) + xi.at(clus_current - 1);
+  }
+  
+  arma::mat psi_new = rdirichlet_cpp(1, n_xi_elem);
+  
+  for(int k = 0; k < active_clus.size(); k++){
+    int clus_current = active_clus.at(k);
+    new_alpha.at(clus_current - 1) = sum(alpha) * psi_new(0, k);
+  }
+  
+  return new_alpha;
 }
 
 // Final Function: -------------------------------------------------------------
@@ -501,9 +560,12 @@ Rcpp::List cluster_func(int K, arma::vec old_assign, arma::vec alpha,
     arma::vec sm_assign = result_s3["new_assign"];
     arma::vec sm_alpha = result_s3["new_alpha"];
     
+    // Step 4: Update alpha
+    arma::vec alpha_final = update_alpha(K, sm_alpha, xi, sm_assign);
+    
     // Record the result
     clus_assign.col(i+1) = sm_assign;
-    alpha_update.col(i+1) = sm_alpha;
+    alpha_update.col(i+1) = alpha_final;
   }
   
   result["alpha_update"] = alpha_update;

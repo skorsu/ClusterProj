@@ -17,6 +17,10 @@ allocate_prob <- function(i, current_assign, xi, y, gamma_hyper_mat, active_clus
     .Call(`_ClusterProj_allocate_prob`, i, current_assign, xi, y, gamma_hyper_mat, active_clus)
 }
 
+rdirichlet_cpp <- function(num_samples, alpha_m) {
+    .Call(`_ClusterProj_rdirichlet_cpp`, num_samples, alpha_m)
+}
+
 expand_step <- function(K, old_assign, alpha, xi, y, gamma_hyper, a_theta, b_theta) {
     .Call(`_ClusterProj_expand_step`, K, old_assign, alpha, xi, y, gamma_hyper, a_theta, b_theta)
 }
@@ -27,6 +31,10 @@ cluster_assign <- function(K, old_assign, xi, y, gamma_hyper, alpha) {
 
 split_merge <- function(K, old_assign, alpha, xi, y, gamma_hyper, a_theta, b_theta, sm_iter = 10L) {
     .Call(`_ClusterProj_split_merge`, K, old_assign, alpha, xi, y, gamma_hyper, a_theta, b_theta, sm_iter)
+}
+
+update_alpha <- function(K, alpha, xi, old_assign) {
+    .Call(`_ClusterProj_update_alpha`, K, alpha, xi, old_assign)
 }
 
 cluster_func <- function(K, old_assign, alpha, xi, y, gamma_hyper, a_theta, b_theta, sm_iter = 10L, all_iter = 100L) {

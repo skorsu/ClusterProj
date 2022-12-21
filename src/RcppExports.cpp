@@ -63,6 +63,18 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// rdirichlet_cpp
+arma::mat rdirichlet_cpp(int num_samples, arma::vec alpha_m);
+RcppExport SEXP _ClusterProj_rdirichlet_cpp(SEXP num_samplesSEXP, SEXP alpha_mSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type num_samples(num_samplesSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type alpha_m(alpha_mSEXP);
+    rcpp_result_gen = Rcpp::wrap(rdirichlet_cpp(num_samples, alpha_m));
+    return rcpp_result_gen;
+END_RCPP
+}
 // expand_step
 Rcpp::List expand_step(int K, arma::vec old_assign, arma::vec alpha, arma::vec xi, arma::mat y, arma::mat gamma_hyper, double a_theta, double b_theta);
 RcppExport SEXP _ClusterProj_expand_step(SEXP KSEXP, SEXP old_assignSEXP, SEXP alphaSEXP, SEXP xiSEXP, SEXP ySEXP, SEXP gamma_hyperSEXP, SEXP a_thetaSEXP, SEXP b_thetaSEXP) {
@@ -116,6 +128,20 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// update_alpha
+arma::vec update_alpha(int K, arma::vec alpha, arma::vec xi, arma::vec old_assign);
+RcppExport SEXP _ClusterProj_update_alpha(SEXP KSEXP, SEXP alphaSEXP, SEXP xiSEXP, SEXP old_assignSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type K(KSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type alpha(alphaSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type xi(xiSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type old_assign(old_assignSEXP);
+    rcpp_result_gen = Rcpp::wrap(update_alpha(K, alpha, xi, old_assign));
+    return rcpp_result_gen;
+END_RCPP
+}
 // cluster_func
 Rcpp::List cluster_func(int K, arma::vec old_assign, arma::vec alpha, arma::vec xi, arma::mat y, arma::mat gamma_hyper, double a_theta, double b_theta, int sm_iter, int all_iter);
 RcppExport SEXP _ClusterProj_cluster_func(SEXP KSEXP, SEXP old_assignSEXP, SEXP alphaSEXP, SEXP xiSEXP, SEXP ySEXP, SEXP gamma_hyperSEXP, SEXP a_thetaSEXP, SEXP b_thetaSEXP, SEXP sm_iterSEXP, SEXP all_iterSEXP) {
@@ -142,9 +168,11 @@ static const R_CallMethodDef CallEntries[] = {
     {"_ClusterProj_active_inactive", (DL_FUNC) &_ClusterProj_active_inactive, 2},
     {"_ClusterProj_density_gamma", (DL_FUNC) &_ClusterProj_density_gamma, 2},
     {"_ClusterProj_allocate_prob", (DL_FUNC) &_ClusterProj_allocate_prob, 6},
+    {"_ClusterProj_rdirichlet_cpp", (DL_FUNC) &_ClusterProj_rdirichlet_cpp, 2},
     {"_ClusterProj_expand_step", (DL_FUNC) &_ClusterProj_expand_step, 8},
     {"_ClusterProj_cluster_assign", (DL_FUNC) &_ClusterProj_cluster_assign, 6},
     {"_ClusterProj_split_merge", (DL_FUNC) &_ClusterProj_split_merge, 9},
+    {"_ClusterProj_update_alpha", (DL_FUNC) &_ClusterProj_update_alpha, 4},
     {"_ClusterProj_cluster_func", (DL_FUNC) &_ClusterProj_cluster_func, 10},
     {NULL, NULL, 0}
 };
