@@ -112,7 +112,7 @@ arma::vec allocate_prob(int i, arma::vec current_assign, arma::vec xi,
   clus_not_i.shed_row(i);
   
   // Calculate the unnormalized allocation probability for each active cluster
-  for(int k = 0; k < active_clus.size(); k++){
+  for(int k = 0; k < active_clus.size(); ++k){
     int current_c = active_clus[k];
     arma::uvec current_ci = arma::find(clus_not_i == current_c);
     
@@ -230,7 +230,7 @@ Rcpp::List expand_step(int K, arma::vec old_assign, arma::vec alpha,
     (a_theta/b_theta);
   
   arma::vec new_assign = old_assign;
-  for(int i = 0; i < old_assign.size(); i++){
+  for(int i = 0; i < old_assign.size(); ++i){
     double prob = accept_prob.at(old_assign.at(i) - 1) *
       density_gamma(y.row(i), gamma_hyper.row(candidate_clus - 1)) /
         density_gamma(y.row(i), gamma_hyper.row(old_assign.at(i) - 1));
@@ -271,7 +271,7 @@ Rcpp::List cluster_assign(int K, arma::vec old_assign, arma::vec xi,
   arma::uvec active_clus = active_List["active"];
   
   // Assign a new assignment
-  for(int i = 0; i < new_assign.size(); i++){
+  for(int i = 0; i < new_assign.size(); ++i){
     // Calculate the unnormalized probability
     arma::vec unnorm_prob = allocate_prob(i, new_assign, xi, 
                                           y, gamma_hyper, active_clus);
@@ -295,14 +295,14 @@ Rcpp::List cluster_assign(int K, arma::vec old_assign, arma::vec xi,
 // [[Rcpp::export]]
 Rcpp::List split_merge(int K, arma::vec old_assign, arma::vec alpha,
                        arma::vec xi, arma::mat y, arma::mat gamma_hyper, 
-                       double a_theta, double b_theta, int sm_iter = 10){
+                       double a_theta, double b_theta, int sm_iter){
   Rcpp::List result;
   
   /* Input: maximum cluster (K), previous cluster assignment, 
    *        previous cluster weight (alpha), hyperparameter for cluster (xi),
    *        data matrix (y), hyperparameter for the data (gamma),
    *        hyperparameter (a_theta, b_theta), 
-   *        number of iteration for launch step (sm_iter; default = 10).
+   *        number of iteration for launch step (sm_iter).
    * Output: new cluster weight, updated cluster assignment.
    */ 
   
@@ -355,14 +355,14 @@ Rcpp::List split_merge(int K, arma::vec old_assign, arma::vec alpha,
   sample_cluster[1] = c_j;
   arma::vec launch_init = Rcpp::sample(sample_cluster, S_index.size(), true);
   
-  for(int s = 0; s < S_index.size(); s++){
+  for(int s = 0; s < S_index.size(); ++s){
     int current_obs = S_index.at(s);
     new_assign.at(current_obs) = launch_init.at(s);
   }
   
   // Reassign in the Launch step
-  for(int t = 0; t < sm_iter; t++){ // Loop in Launch
-    for(int i = 0; i < S_index.size(); i++){ // Loop for each elements
+  for(int t = 0; t < sm_iter; ++t){ // Loop in Launch
+    for(int i = 0; i < S_index.size(); ++i){ // Loop for each elements
       int s = S_index[i];
       arma::vec unnorm_prob = allocate_prob(s, new_assign, xi, y,
                                             gamma_hyper, active_launch);
@@ -407,7 +407,7 @@ Rcpp::List split_merge(int K, arma::vec old_assign, arma::vec alpha,
     dum_alpha.at(c_i - 1) = R::rgamma(xi.at(c_i - 1), 1);
     
     // Reassign the element in SM_index
-    for(int i = 0; i < SM_index.size(); i++){ // Loop for each elements
+    for(int i = 0; i < SM_index.size(); ++i){ // Loop for each elements
       int s = SM_index[i];
       arma::vec unnorm_prob = allocate_prob(s, new_assign, xi, y,
                                             gamma_hyper, active_sm_launch);
@@ -428,7 +428,7 @@ Rcpp::List split_merge(int K, arma::vec old_assign, arma::vec alpha,
   double log_proposed = (SM_index.size() - 2) * log(0.5);
   
   // Consider alpha
-  for(int k = 0; k < alpha.size(); k++){
+  for(int k = 0; k < alpha.size(); ++k){
     if(alpha.at(k) < new_alpha.at(k)){ 
       // Proposed a non-zero alpha (active cluster from inactive)
       accept_prob = accept_prob + 
@@ -452,7 +452,7 @@ Rcpp::List split_merge(int K, arma::vec old_assign, arma::vec alpha,
   // Consider the multinomial distribution
   double old_multi = 0.0;
   double new_multi = 0.0;
-  for(int i = 0; i < old_assign.size(); i++){
+  for(int i = 0; i < old_assign.size(); ++i){
     old_multi = old_multi + log(alpha.at(old_assign.at(i) - 1));
     new_multi = new_multi + log(new_alpha.at(new_assign.at(i) - 1));
   }
@@ -489,7 +489,7 @@ arma::vec update_alpha(int K, arma::vec alpha, arma::vec xi,
   
   arma::vec n_xi_elem = -1.0 * arma::ones(active_clus.size());
   
-  for(int k = 0; k < active_clus.size(); k++){
+  for(int k = 0; k < active_clus.size(); ++k){
     int clus_current = active_clus.at(k);
     arma::uvec obs_current_index = old_assign == clus_current;
     n_xi_elem.at(k) = sum(obs_current_index) + xi.at(clus_current - 1);
@@ -497,7 +497,7 @@ arma::vec update_alpha(int K, arma::vec alpha, arma::vec xi,
   
   arma::mat psi_new = rdirichlet_cpp(1, n_xi_elem);
   
-  for(int k = 0; k < active_clus.size(); k++){
+  for(int k = 0; k < active_clus.size(); ++k){
     int clus_current = active_clus.at(k);
     new_alpha.at(clus_current - 1) = sum(alpha) * psi_new(0, k);
   }
@@ -509,16 +509,16 @@ arma::vec update_alpha(int K, arma::vec alpha, arma::vec xi,
 // [[Rcpp::export]]
 Rcpp::List cluster_func(int K, arma::vec old_assign, arma::vec alpha,
                         arma::vec xi, arma::mat y, arma::mat gamma_hyper, 
-                        double a_theta, double b_theta, int sm_iter = 10, 
-                        int all_iter = 100){
+                        double a_theta, double b_theta, int sm_iter, 
+                        int all_iter){
   Rcpp::List result;
   
   /* Input: maximum cluster (K), previous cluster assignment, 
    *        previous cluster weight (alpha), hyperparameter for cluster (xi),
    *        data matrix (y), hyperparameter for the data (gamma),
    *        hyperparameter (a_theta, b_theta), 
-   *        iteration for the split-merge process (sm_iter; default = 10)
-   *        overall iteration (all_iter; default at 100).
+   *        iteration for the split-merge process (sm_iter)
+   *        overall iteration (all_iter).
    * Output: new cluster weight, updated cluster assignment, 
    *         number of active cluster in each iteration.
    */ 
@@ -536,7 +536,10 @@ Rcpp::List cluster_func(int K, arma::vec old_assign, arma::vec alpha,
   arma::mat alpha_update = -1 * arma::ones(alpha.size(), all_iter + 1);
   alpha_update.col(0) = alpha;
   
-  for(int i = 0; i < all_iter; i++){
+  for(int i = 0; i < all_iter; ++i){
+    
+    Rcpp::Rcout << i << std::endl;
+    
     // Initial value
     arma::vec current_assign = clus_assign.col(i);
     arma::vec current_alpha = alpha_update.col(i);
@@ -553,6 +556,10 @@ Rcpp::List cluster_func(int K, arma::vec old_assign, arma::vec alpha,
     arma::vec reallocate_assign = result_s2["new_assign"];
     arma::vec reallocate_alpha = result_s2["new_alpha"];
     
+    Rcpp::Rcout << "catch: before sm" << std::endl;
+    Rcpp::Rcout << reallocate_assign << std::endl;
+    Rcpp::Rcout << reallocate_alpha << std::endl;
+    
     // Step 3: Split-Merge
     Rcpp::List result_s3 = split_merge(K, reallocate_assign, reallocate_alpha,
                                        xi, y, gamma_hyper, a_theta, b_theta, 
@@ -560,8 +567,14 @@ Rcpp::List cluster_func(int K, arma::vec old_assign, arma::vec alpha,
     arma::vec sm_assign = result_s3["new_assign"];
     arma::vec sm_alpha = result_s3["new_alpha"];
     
+    Rcpp::Rcout << "catch: after sm - before alpha" << std::endl;
+    
     // Step 4: Update alpha
     arma::vec alpha_final = update_alpha(K, sm_alpha, xi, sm_assign);
+    
+    Rcpp::Rcout << "catch: after alpha" << std::endl;
+    // Rcpp::Rcout << sm_assign << std::endl;
+    // Rcpp::Rcout << alpha_final << std::endl;
     
     // Record the result
     clus_assign.col(i+1) = sm_assign;
