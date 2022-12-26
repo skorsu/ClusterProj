@@ -10,13 +10,16 @@
 // - gamma_hyper is a matrix with K by J dimension.
 
 // Tasks: ----------------------------------------------------------------------
-// * Step 4: Update other parameters. (?)
+// - All done!
 
-// Questions: ------------------------------------------------------------------
-// - For Step 1, if all clusters are already active, 
-//   can we randomly select one of the active cluster?
-// - For Step 3, split-merge process when ci = cj and 
-//   all clusters are already active.
+// Questions and how I fix it: -------------------------------------------------
+// - For Step 1, if all clusters are already active, can we randomly select one 
+//   of the active cluster?
+// * Solution: I will sample one of the already active cluster and pretend that 
+//           this is a new inactive cluster.
+// - For Step 3, split-merge process when ci = cj and all clusters are already 
+//   active.
+// * Solution: I will always reject that proposed assignment.
 
 // User-defined function: ------------------------------------------------------
 // [[Rcpp::export]]
@@ -372,8 +375,10 @@ Rcpp::List split_merge(int K, arma::vec old_assign, arma::vec alpha,
   }
   
   // Prepare for the split-merge process
-  int sm_indicator = 0;
+  double sm_indicator = 0.0;
   arma::vec new_assign = launch_assign;
+  arma::vec launch_alpha_vec = launch_alpha; 
+  // We will use launch_assign and launch_alpha_vec for MH algorithm.
   List_clusters = active_inactive(K, launch_assign);
   arma::uvec active_sm = List_clusters["active"];
   arma::uvec inactive_sm = List_clusters["inactive"];
@@ -387,13 +392,13 @@ Rcpp::List split_merge(int K, arma::vec old_assign, arma::vec alpha,
   // Split-Merge Process
   if(c_i != c_j){ 
     // merge these two clusters into c_j cluster
-    Rcpp::Rcout << "final: merge" << std::endl;
-    sm_indicator = -1;
+    // Rcpp::Rcout << "final: merge" << std::endl;
+    sm_indicator = 1.0;
     new_assign.elem(s_index).fill(c_j);
   } else if((c_i == c_j) and (active_sm.size() != K)) { 
     // split in case that at least one cluster is inactive.
-    Rcpp::Rcout << "final: split (some inactive)" << std::endl;
-    sm_indicator = 1;
+    // Rcpp::Rcout << "final: split (some inactive)" << std::endl;
+    sm_indicator = -1.0;
     
     // sample a new inactive cluster
     arma::vec prob_inactive = arma::ones(inactive_sm.size())/inactive_sm.size();
@@ -410,28 +415,52 @@ Rcpp::List split_merge(int K, arma::vec old_assign, arma::vec alpha,
       new_assign.row(current_obs).fill(sample_clus(norm_prob, cluster_sm));
     }
   } else {
-    Rcpp::Rcout << "final: split (none inactive)" << std::endl;
+    // Rcpp::Rcout << "final: split (none inactive)" << std::endl;
   }
   
   arma::vec new_alpha = adjust_alpha(K, new_assign, launch_alpha);
   
-  // MH Update
+  // MH Update (log form)
+  // Elements
+  double launch_elem = 0.0;
+  double final_elem = 0.0;
+  double alpha_log = 0.0;
+  double proposal = sm_indicator * std::log(0.5) * s_index.size();
   
-  /*
-  result["obs_i"] = obs_i;
-  result["obs_j"] = obs_j;
-  result["c_i"] = c_i;
-  result["c_j"] = c_j;
+  for(int k = 1; k <= K; ++k){
+    // Calculate alpha
+    if(launch_alpha_vec.at(k - 1) != new_alpha.at(k - 1)){
+      if(new_alpha.at(k - 1) != 0){
+        alpha_log += R::dgamma(new_alpha.at(k - 1), xi.at(k - 1), 1.0, 1);
+        alpha_log += std::log(a_theta);
+        alpha_log -= std::log(b_theta);
+      } else {
+        alpha_log -= R::dgamma(launch_alpha_vec.at(k - 1), 
+                               xi.at(k - 1), 1.0, 1);
+        alpha_log -= std::log(a_theta);
+        alpha_log += std::log(b_theta);
+      }
+    }
+    // Calculate Multinomial
+    arma::uvec launch_elem_vec = arma::find(launch_assign == k);
+    arma::uvec final_elem_vec = arma::find(new_assign == k);
+    if(launch_elem_vec.size() > 0){
+      launch_elem += launch_elem_vec.size() * 
+        std::log(launch_alpha_vec.at(k - 1));
+    }
+    if(final_elem_vec.size() > 0){
+      final_elem += final_elem_vec.size() * std::log(new_alpha.at(k - 1));
+    }
+  }
   
-  result["cluster_launch"] = cluster_launch;
-
-  result["assign_mat"] = arma::join_horiz(old_assign, new_assign);
-  result["obs_index"] = obs_index;
-  result["s_index"] = s_index;
-  */
+  double log_A = std::min(std::log(1), 
+                          alpha_log + final_elem - launch_elem + proposal);
+  double log_u = std::log(R::runif(0.0, 1.0));
   
-  result["active_clus"] = active_clus;
-  result["active_sm"] = active_sm;
+  if(log_u >= log_A){
+    new_assign = launch_assign;
+    new_alpha = launch_alpha_vec;
+  }
   
   result["new_assign"] = new_assign;
   result["new_alpha"] = new_alpha;
@@ -506,7 +535,7 @@ Rcpp::List cluster_func(int K, arma::vec old_assign, arma::vec alpha,
   
   for(int i = 0; i < all_iter; ++i){
     
-    Rcpp::Rcout << i << std::endl;
+    // Rcpp::Rcout << i << std::endl;
     
     // Initial value
     arma::vec current_assign = clus_assign.col(i);
@@ -531,7 +560,7 @@ Rcpp::List cluster_func(int K, arma::vec old_assign, arma::vec alpha,
     arma::vec sm_assign = result_s3["new_assign"];
     arma::vec sm_alpha = result_s3["new_alpha"];
     
-    Rcpp::Rcout << "catch: after sm - before alpha" << std::endl;
+    // Rcpp::Rcout << "catch: after sm - before alpha" << std::endl;
     
     // Step 4: Update alpha
     arma::vec alpha_final = update_alpha(K, sm_alpha, xi, sm_assign);
