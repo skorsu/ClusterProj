@@ -1,7 +1,7 @@
 [
     {
         "file": "/Users/kevinkvp/Desktop/Research/ClusterProj/src/main.cpp",
-        "file_last_write": 1671661950.0,
+        "file_last_write": 1672041372.0,
         "definitions": [
             {
                 "usr": "c:@F@sample_clus#$@N@arma@S@Col>#d#$@N@arma@S@Col>#i#",
@@ -9,7 +9,7 @@
                 "parent_name": "",
                 "name": "sample_clus(arma::vec, arma::uvec)",
                 "file": "/Users/kevinkvp/Desktop/Research/ClusterProj/src/main.cpp",
-                "line": 23,
+                "line": 26,
                 "column": 5,
                 "hidden": false
             },
@@ -19,7 +19,7 @@
                 "parent_name": "",
                 "name": "active_inactive(int, arma::vec)",
                 "file": "/Users/kevinkvp/Desktop/Research/ClusterProj/src/main.cpp",
-                "line": 42,
+                "line": 45,
                 "column": 12,
                 "hidden": false
             },
@@ -29,7 +29,7 @@
                 "parent_name": "",
                 "name": "density_gamma(arma::rowvec, arma::rowvec)",
                 "file": "/Users/kevinkvp/Desktop/Research/ClusterProj/src/main.cpp",
-                "line": 64,
+                "line": 67,
                 "column": 8,
                 "hidden": false
             },
@@ -39,7 +39,7 @@
                 "parent_name": "",
                 "name": "allocate_prob(int, arma::vec, arma::vec, arma::mat, arma::mat, arma::uvec)",
                 "file": "/Users/kevinkvp/Desktop/Research/ClusterProj/src/main.cpp",
-                "line": 93,
+                "line": 96,
                 "column": 11,
                 "hidden": false
             },
@@ -49,7 +49,7 @@
                 "parent_name": "",
                 "name": "adjust_alpha(int, arma::vec, arma::vec)",
                 "file": "/Users/kevinkvp/Desktop/Research/ClusterProj/src/main.cpp",
-                "line": 153,
+                "line": 156,
                 "column": 11,
                 "hidden": false
             },
@@ -59,7 +59,7 @@
                 "parent_name": "",
                 "name": "rdirichlet_cpp(int, arma::vec)",
                 "file": "/Users/kevinkvp/Desktop/Research/ClusterProj/src/main.cpp",
-                "line": 170,
+                "line": 173,
                 "column": 11,
                 "hidden": false
             },
@@ -69,7 +69,7 @@
                 "parent_name": "",
                 "name": "expand_step(int, arma::vec, arma::vec, arma::vec, arma::mat, arma::mat, double, double)",
                 "file": "/Users/kevinkvp/Desktop/Research/ClusterProj/src/main.cpp",
-                "line": 197,
+                "line": 200,
                 "column": 12,
                 "hidden": false
             },
@@ -79,7 +79,7 @@
                 "parent_name": "",
                 "name": "cluster_assign(int, arma::vec, arma::vec, arma::mat, arma::mat, arma::vec)",
                 "file": "/Users/kevinkvp/Desktop/Research/ClusterProj/src/main.cpp",
-                "line": 255,
+                "line": 258,
                 "column": 12,
                 "hidden": false
             },
@@ -89,7 +89,7 @@
                 "parent_name": "",
                 "name": "split_merge(int, arma::vec, arma::vec, arma::vec, arma::mat, arma::mat, double, double, int)",
                 "file": "/Users/kevinkvp/Desktop/Research/ClusterProj/src/main.cpp",
-                "line": 296,
+                "line": 299,
                 "column": 12,
                 "hidden": false
             },
@@ -99,7 +99,7 @@
                 "parent_name": "",
                 "name": "update_alpha(int, arma::vec, arma::vec, arma::vec)",
                 "file": "/Users/kevinkvp/Desktop/Research/ClusterProj/src/main.cpp",
-                "line": 476,
+                "line": 473,
                 "column": 11,
                 "hidden": false
             },
@@ -109,7 +109,7 @@
                 "parent_name": "",
                 "name": "cluster_func(int, arma::vec, arma::vec, arma::vec, arma::mat, arma::mat, double, double, int, int)",
                 "file": "/Users/kevinkvp/Desktop/Research/ClusterProj/src/main.cpp",
-                "line": 510,
+                "line": 507,
                 "column": 12,
                 "hidden": false
             }
