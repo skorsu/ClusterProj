@@ -10,7 +10,7 @@
 // - gamma_hyper is a matrix with K by J dimension.
 
 // Tasks: ----------------------------------------------------------------------
-// - All done!
+// - Fixed
 
 // Questions and how I fix it: -------------------------------------------------
 // - For Step 1, if all clusters are already active, can we randomly select one 
@@ -281,8 +281,12 @@ Rcpp::List cluster_assign(int K, arma::vec old_assign, arma::vec xi,
     // Calculate the normalized probability
     arma::vec norm_prob = arma::normalise(unnorm_prob, 1);
     
+    Rcpp::Rcout << active_clus << std::endl;
+    Rcpp::Rcout << norm_prob << std::endl;
     // Reassign a new cluster
-    new_assign.row(i).fill(sample_clus(norm_prob, active_clus));
+    int new_clus = sample_clus(norm_prob, active_clus);
+    Rcpp::Rcout << new_clus << std::endl;
+    new_assign.row(i).fill(new_clus);
   }
   
   // Adjust an alpha vector
@@ -374,6 +378,7 @@ Rcpp::List split_merge(int K, arma::vec old_assign, arma::vec alpha,
     }
   }
   
+  
   // Prepare for the split-merge process
   double sm_indicator = 0.0;
   arma::vec new_assign = launch_assign;
@@ -392,12 +397,12 @@ Rcpp::List split_merge(int K, arma::vec old_assign, arma::vec alpha,
   // Split-Merge Process
   if(c_i != c_j){ 
     // merge these two clusters into c_j cluster
-    // Rcpp::Rcout << "final: merge" << std::endl;
+    Rcpp::Rcout << "final: merge" << std::endl;
     sm_indicator = 1.0;
     new_assign.elem(s_index).fill(c_j);
   } else if((c_i == c_j) and (active_sm.size() != K)) { 
     // split in case that at least one cluster is inactive.
-    // Rcpp::Rcout << "final: split (some inactive)" << std::endl;
+    Rcpp::Rcout << "final: split (some inactive)" << std::endl;
     sm_indicator = -1.0;
     
     // sample a new inactive cluster
@@ -547,6 +552,7 @@ Rcpp::List cluster_func(int K, arma::vec old_assign, arma::vec alpha,
     arma::vec expand_assign = result_s1["new_assign"];
     arma::vec expand_alpha = result_s1["new_alpha"];
     
+    
     // Step 2: Reallocation
     Rcpp::List result_s2 = cluster_assign(K, expand_assign, xi, y, 
                                           gamma_hyper, expand_alpha);
@@ -560,11 +566,9 @@ Rcpp::List cluster_func(int K, arma::vec old_assign, arma::vec alpha,
     arma::vec sm_assign = result_s3["new_assign"];
     arma::vec sm_alpha = result_s3["new_alpha"];
     
-    // Rcpp::Rcout << "catch: after sm - before alpha" << std::endl;
-    
     // Step 4: Update alpha
     arma::vec alpha_final = update_alpha(K, sm_alpha, xi, sm_assign);
-    
+
     // Record the result
     clus_assign.col(i+1) = sm_assign;
     alpha_update.col(i+1) = alpha_final;
