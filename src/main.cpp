@@ -125,7 +125,6 @@ arma::vec allocate_prob(int i, arma::vec current_assign, arma::vec xi,
     
     // Filter only the observation from cluster i
     arma::mat y_current = y_not_i.rows(current_ci);
-    
     // First term: not consider the observation i
     // Sum for each column and gamma_hyper
     arma::rowvec sum_y_gamma_column = gamma_hyper.t() + sum(y_current, 0); 
@@ -281,11 +280,8 @@ Rcpp::List cluster_assign(int K, arma::vec old_assign, arma::vec xi,
     // Calculate the normalized probability
     arma::vec norm_prob = arma::normalise(unnorm_prob, 1);
     
-    Rcpp::Rcout << active_clus << std::endl;
-    Rcpp::Rcout << norm_prob << std::endl;
     // Reassign a new cluster
     int new_clus = sample_clus(norm_prob, active_clus);
-    Rcpp::Rcout << new_clus << std::endl;
     new_assign.row(i).fill(new_clus);
   }
   
@@ -378,7 +374,6 @@ Rcpp::List split_merge(int K, arma::vec old_assign, arma::vec alpha,
     }
   }
   
-  
   // Prepare for the split-merge process
   double sm_indicator = 0.0;
   arma::vec new_assign = launch_assign;
@@ -397,12 +392,12 @@ Rcpp::List split_merge(int K, arma::vec old_assign, arma::vec alpha,
   // Split-Merge Process
   if(c_i != c_j){ 
     // merge these two clusters into c_j cluster
-    Rcpp::Rcout << "final: merge" << std::endl;
+    // Rcpp::Rcout << "final: merge" << std::endl;
     sm_indicator = 1.0;
     new_assign.elem(s_index).fill(c_j);
   } else if((c_i == c_j) and (active_sm.size() != K)) { 
     // split in case that at least one cluster is inactive.
-    Rcpp::Rcout << "final: split (some inactive)" << std::endl;
+    // Rcpp::Rcout << "final: split (some inactive)" << std::endl;
     sm_indicator = -1.0;
     
     // sample a new inactive cluster
@@ -414,10 +409,13 @@ Rcpp::List split_merge(int K, arma::vec old_assign, arma::vec alpha,
     
     for(int i = 0; i < s_index.size(); ++i){
       int current_obs = s_index.at(i);
-      arma::vec unnorm_prob = allocate_prob(current_obs, new_assign, xi, 
-                                            y, gamma_hyper, cluster_sm);
-      arma::vec norm_prob = arma::normalise(unnorm_prob, 1);
-      new_assign.row(current_obs).fill(sample_clus(norm_prob, cluster_sm));
+      if((current_obs != obs_i) and (current_obs != obs_j)){
+        arma::vec unnorm_prob = allocate_prob(current_obs, new_assign, xi, 
+                                              y, gamma_hyper, cluster_sm);
+        arma::vec norm_prob = arma::normalise(unnorm_prob, 1);
+        // Rcpp::Rcout << norm_prob << std::endl;
+        new_assign.row(current_obs).fill(sample_clus(norm_prob, cluster_sm));
+      }
     }
   } else {
     // Rcpp::Rcout << "final: split (none inactive)" << std::endl;
@@ -512,7 +510,7 @@ arma::vec update_alpha(int K, arma::vec alpha, arma::vec xi,
 Rcpp::List cluster_func(int K, arma::vec old_assign, arma::vec alpha,
                         arma::vec xi, arma::mat y, arma::mat gamma_hyper, 
                         double a_theta, double b_theta, int sm_iter, 
-                        int all_iter){
+                        int all_iter, bool print_iter, int iter_print){
   Rcpp::List result;
   
   /* Input: maximum cluster (K), previous cluster assignment, 
@@ -520,7 +518,8 @@ Rcpp::List cluster_func(int K, arma::vec old_assign, arma::vec alpha,
    *        data matrix (y), hyperparameter for the data (gamma),
    *        hyperparameter (a_theta, b_theta), 
    *        iteration for the split-merge process (sm_iter)
-   *        overall iteration (all_iter).
+   *        overall iteration (all_iter), print progress (print_iter),
+   *        if printed, preint every iter_print iteration.
    * Output: new cluster weight, updated cluster assignment, 
    *         number of active cluster in each iteration.
    */ 
@@ -540,7 +539,11 @@ Rcpp::List cluster_func(int K, arma::vec old_assign, arma::vec alpha,
   
   for(int i = 0; i < all_iter; ++i){
     
-    // Rcpp::Rcout << i << std::endl;
+    if(print_iter == true){
+      if((i+1) % iter_print == 0){
+        Rcpp::Rcout << (i + 1) << std::endl;
+      }
+    }
     
     // Initial value
     arma::vec current_assign = clus_assign.col(i);

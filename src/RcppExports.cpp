@@ -143,8 +143,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // cluster_func
-Rcpp::List cluster_func(int K, arma::vec old_assign, arma::vec alpha, arma::vec xi, arma::mat y, arma::mat gamma_hyper, double a_theta, double b_theta, int sm_iter, int all_iter);
-RcppExport SEXP _ClusterProj_cluster_func(SEXP KSEXP, SEXP old_assignSEXP, SEXP alphaSEXP, SEXP xiSEXP, SEXP ySEXP, SEXP gamma_hyperSEXP, SEXP a_thetaSEXP, SEXP b_thetaSEXP, SEXP sm_iterSEXP, SEXP all_iterSEXP) {
+Rcpp::List cluster_func(int K, arma::vec old_assign, arma::vec alpha, arma::vec xi, arma::mat y, arma::mat gamma_hyper, double a_theta, double b_theta, int sm_iter, int all_iter, bool print_iter, int iter_print);
+RcppExport SEXP _ClusterProj_cluster_func(SEXP KSEXP, SEXP old_assignSEXP, SEXP alphaSEXP, SEXP xiSEXP, SEXP ySEXP, SEXP gamma_hyperSEXP, SEXP a_thetaSEXP, SEXP b_thetaSEXP, SEXP sm_iterSEXP, SEXP all_iterSEXP, SEXP print_iterSEXP, SEXP iter_printSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -158,7 +158,9 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type b_theta(b_thetaSEXP);
     Rcpp::traits::input_parameter< int >::type sm_iter(sm_iterSEXP);
     Rcpp::traits::input_parameter< int >::type all_iter(all_iterSEXP);
-    rcpp_result_gen = Rcpp::wrap(cluster_func(K, old_assign, alpha, xi, y, gamma_hyper, a_theta, b_theta, sm_iter, all_iter));
+    Rcpp::traits::input_parameter< bool >::type print_iter(print_iterSEXP);
+    Rcpp::traits::input_parameter< int >::type iter_print(iter_printSEXP);
+    rcpp_result_gen = Rcpp::wrap(cluster_func(K, old_assign, alpha, xi, y, gamma_hyper, a_theta, b_theta, sm_iter, all_iter, print_iter, iter_print));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -173,7 +175,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_ClusterProj_cluster_assign", (DL_FUNC) &_ClusterProj_cluster_assign, 6},
     {"_ClusterProj_split_merge", (DL_FUNC) &_ClusterProj_split_merge, 9},
     {"_ClusterProj_update_alpha", (DL_FUNC) &_ClusterProj_update_alpha, 4},
-    {"_ClusterProj_cluster_func", (DL_FUNC) &_ClusterProj_cluster_func, 10},
+    {"_ClusterProj_cluster_func", (DL_FUNC) &_ClusterProj_cluster_func, 12},
     {NULL, NULL, 0}
 };
 
