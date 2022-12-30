@@ -370,12 +370,10 @@ Rcpp::List cluster_assign(int K, arma::vec old_assign, arma::vec xi,
   // Assign a new assignment
   for(int i = 0; i < new_assign.size(); ++i){
     // Calculate the unnormalized probability
-    arma::vec unnorm_prob = allocate_prob(i, new_assign, xi, 
-                                          y, gamma_hyper, active_clus);
+    arma::vec log_unnorm_prob = log_allocate_prob(i, new_assign, xi, 
+                                                  y, gamma_hyper, active_clus);
     // Calculate the normalized probability
-    arma::vec norm_prob = arma::normalise(unnorm_prob, 1);
-    Rcpp::Rcout << unnorm_prob << std::endl;
-    Rcpp::Rcout << norm_prob << std::endl;
+    arma::vec norm_prob = norm_exp(log_unnorm_prob);
     
     // Reassign a new cluster
     int new_clus = sample_clus(norm_prob, active_clus);
