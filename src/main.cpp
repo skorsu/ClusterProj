@@ -355,8 +355,6 @@ Rcpp::List cluster_assign(int K, arma::vec old_assign, arma::vec xi,
   Rcpp::List result;
   arma::vec new_assign = old_assign;
   
-  // Assume that all clusters share the same hyperparameters (gamma)
-  
   /* Input: maximum cluster (K), previous cluster assignment, 
    *        hyperparameter for cluster (xi), data matrix (y), 
    *        hyperparameter for the data (gamma)
@@ -405,7 +403,6 @@ Rcpp::List split_merge(int K, arma::vec old_assign, arma::vec alpha,
    */ 
   
   // Initial the alpha vector and assignment vector
-  
   arma::vec launch_assign = old_assign;
   arma::vec launch_alpha = alpha;
   
@@ -461,9 +458,10 @@ Rcpp::List split_merge(int K, arma::vec old_assign, arma::vec alpha,
   for(int t = 0; t < sm_iter; ++t){
     for(int i = 0; i < s_index.size(); ++i){
       int current_obs = s_index.at(i);
-      arma::vec unnorm_prob = allocate_prob(current_obs, launch_assign, xi, 
-                                            y, gamma_hyper, cluster_launch);
-      arma::vec norm_prob = arma::normalise(unnorm_prob, 1);
+      arma::vec log_unnorm_prob = log_allocate_prob(current_obs, launch_assign, 
+                                                    xi, y, gamma_hyper, 
+                                                    cluster_launch);
+      arma::vec norm_prob = norm_exp(log_unnorm_prob);
       launch_assign.row(current_obs).
       fill(sample_clus(norm_prob, cluster_launch));
     }
@@ -505,9 +503,10 @@ Rcpp::List split_merge(int K, arma::vec old_assign, arma::vec alpha,
     for(int i = 0; i < s_index.size(); ++i){
       int current_obs = s_index.at(i);
       if((current_obs != obs_i) and (current_obs != obs_j)){
-        arma::vec unnorm_prob = allocate_prob(current_obs, new_assign, xi, 
-                                              y, gamma_hyper, cluster_sm);
-        arma::vec norm_prob = arma::normalise(unnorm_prob, 1);
+        arma::vec log_unnorm_prob = log_allocate_prob(current_obs, new_assign, 
+                                                      xi, y, gamma_hyper, 
+                                                      cluster_sm);
+        arma::vec norm_prob = norm_exp(log_unnorm_prob);
         // Rcpp::Rcout << norm_prob << std::endl;
         new_assign.row(current_obs).fill(sample_clus(norm_prob, cluster_sm));
       }
