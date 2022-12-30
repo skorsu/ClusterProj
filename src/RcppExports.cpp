@@ -35,15 +35,15 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// density_gamma
-double density_gamma(arma::rowvec y, arma::rowvec hyper_gamma_k);
-RcppExport SEXP _ClusterProj_density_gamma(SEXP ySEXP, SEXP hyper_gamma_kSEXP) {
+// log_density_gamma
+double log_density_gamma(arma::rowvec y, arma::rowvec hyper_gamma_k);
+RcppExport SEXP _ClusterProj_log_density_gamma(SEXP ySEXP, SEXP hyper_gamma_kSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::rowvec >::type y(ySEXP);
     Rcpp::traits::input_parameter< arma::rowvec >::type hyper_gamma_k(hyper_gamma_kSEXP);
-    rcpp_result_gen = Rcpp::wrap(density_gamma(y, hyper_gamma_k));
+    rcpp_result_gen = Rcpp::wrap(log_density_gamma(y, hyper_gamma_k));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -60,6 +60,33 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< arma::mat >::type gamma_hyper_mat(gamma_hyper_matSEXP);
     Rcpp::traits::input_parameter< arma::uvec >::type active_clus(active_clusSEXP);
     rcpp_result_gen = Rcpp::wrap(allocate_prob(i, current_assign, xi, y, gamma_hyper_mat, active_clus));
+    return rcpp_result_gen;
+END_RCPP
+}
+// log_allocate_prob
+arma::vec log_allocate_prob(int i, arma::vec current_assign, arma::vec xi, arma::mat y, arma::mat gamma_hyper_mat, arma::uvec active_clus);
+RcppExport SEXP _ClusterProj_log_allocate_prob(SEXP iSEXP, SEXP current_assignSEXP, SEXP xiSEXP, SEXP ySEXP, SEXP gamma_hyper_matSEXP, SEXP active_clusSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type i(iSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type current_assign(current_assignSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type xi(xiSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type y(ySEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type gamma_hyper_mat(gamma_hyper_matSEXP);
+    Rcpp::traits::input_parameter< arma::uvec >::type active_clus(active_clusSEXP);
+    rcpp_result_gen = Rcpp::wrap(log_allocate_prob(i, current_assign, xi, y, gamma_hyper_mat, active_clus));
+    return rcpp_result_gen;
+END_RCPP
+}
+// norm_exp
+arma::vec norm_exp(arma::vec log_unnorm_prob);
+RcppExport SEXP _ClusterProj_norm_exp(SEXP log_unnorm_probSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::vec >::type log_unnorm_prob(log_unnorm_probSEXP);
+    rcpp_result_gen = Rcpp::wrap(norm_exp(log_unnorm_prob));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -168,8 +195,10 @@ END_RCPP
 static const R_CallMethodDef CallEntries[] = {
     {"_ClusterProj_sample_clus", (DL_FUNC) &_ClusterProj_sample_clus, 2},
     {"_ClusterProj_active_inactive", (DL_FUNC) &_ClusterProj_active_inactive, 2},
-    {"_ClusterProj_density_gamma", (DL_FUNC) &_ClusterProj_density_gamma, 2},
+    {"_ClusterProj_log_density_gamma", (DL_FUNC) &_ClusterProj_log_density_gamma, 2},
     {"_ClusterProj_allocate_prob", (DL_FUNC) &_ClusterProj_allocate_prob, 6},
+    {"_ClusterProj_log_allocate_prob", (DL_FUNC) &_ClusterProj_log_allocate_prob, 6},
+    {"_ClusterProj_norm_exp", (DL_FUNC) &_ClusterProj_norm_exp, 1},
     {"_ClusterProj_rdirichlet_cpp", (DL_FUNC) &_ClusterProj_rdirichlet_cpp, 2},
     {"_ClusterProj_expand_step", (DL_FUNC) &_ClusterProj_expand_step, 8},
     {"_ClusterProj_cluster_assign", (DL_FUNC) &_ClusterProj_cluster_assign, 6},

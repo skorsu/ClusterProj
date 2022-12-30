@@ -10,7 +10,7 @@
 // - gamma_hyper is a matrix with K by J dimension.
 
 // Tasks: ----------------------------------------------------------------------
-// - Fixed
+// - Step 2: Instead of using gamma function, I will use log(gamma) function.
 
 // Questions and how I fix it: -------------------------------------------------
 // - For Step 1, if all clusters are already active, can we randomly select one 
@@ -64,6 +64,24 @@ Rcpp::List active_inactive(int K, arma::vec clus_assign){
 }
 
 // [[Rcpp::export]]
+double log_density_gamma(arma::rowvec y, arma::rowvec hyper_gamma_k){
+  double log_p = 0.0;
+  
+  /* Description: This is the function for calculating the log of the 
+   *              p(yi|gamma_k)
+   * Input: Data point (y) and hyperparameter for that cluster (hyper_gamma_k)
+   * Output: log(p(yi|gamma_k))
+   */
+  
+  arma::rowvec y_hyper = y + hyper_gamma_k;
+  arma::mat lg_hyper = arma::lgamma(hyper_gamma_k);
+  arma::mat lg_y_hyper = arma::lgamma(y_hyper);
+  
+  log_p += lgamma(sum(hyper_gamma_k)) + arma::accu(lg_y_hyper) -
+    arma::accu(lg_hyper) - lgamma(sum(y_hyper));
+  return log_p;
+}
+
 double density_gamma(arma::rowvec y, arma::rowvec hyper_gamma_k){
   double result;
   
@@ -150,6 +168,76 @@ arma::vec allocate_prob(int i, arma::vec current_assign, arma::vec xi,
   }
   
   return unnorm_prob;
+}
+
+// [[Rcpp::export]]
+arma::vec log_allocate_prob(int i, arma::vec current_assign, arma::vec xi, 
+                            arma::mat y, arma::mat gamma_hyper_mat, 
+                            arma::uvec active_clus){
+  
+  arma::vec log_unnorm_prob = -1 * arma::ones(active_clus.size());
+  
+  /* Description: Calculate the log unnormalized probability for each cluster 
+   *              for observation i.
+   * Input: current index (i), current cluster assignment, 
+   *        hyperparameter for cluster (xi), data matrix (y), 
+   *        hyperparameter for the data (gamma_hyper_mat), active cluster.
+   * Output: log unnormalized allocation probability.
+   */
+  
+  // Split the data into two sets: (1) observation i (2) without observation i.
+  arma::rowvec y_i = y.row(i);
+  arma::mat y_not_i = y; 
+  y_not_i.shed_row(i);
+  arma::vec clus_not_i = current_assign; 
+  clus_not_i.shed_row(i);
+  
+  // Calculate the unnormalized allocation probability for each active cluster
+  for(int k = 0; k < active_clus.size(); ++k){
+    int current_c = active_clus[k];
+    arma::uvec current_ci = arma::find(clus_not_i == current_c);
+    
+    // Select the hyperparameter that corresponding to the cluster k
+    arma::rowvec gamma_hyper = arma::conv_to<arma::rowvec>::
+      from(gamma_hyper_mat.row(current_c - 1));
+    double xi_k = xi.at(current_c - 1);
+    
+    // Filter only the observation from cluster i
+    arma::mat y_current = y_not_i.rows(current_ci);
+    
+    // Calculate required vectors
+    arma::rowvec y_hyper = gamma_hyper + arma::sum(y_current, 0);
+    arma::rowvec y_hyper_yi = y_hyper + y_i;
+    double n_xi = xi_k + current_ci.size();
+    
+    // Calculate log(gamma) component.
+    arma::mat lg_y_hyper = arma::lgamma(y_hyper);
+    arma::mat lg_y_hyper_yi = arma::lgamma(y_hyper_yi);
+    
+    double calculate_lg = lgamma(sum(y_hyper)) + arma::accu(lg_y_hyper_yi) +
+      std::log(n_xi) - arma::accu(lg_y_hyper) - lgamma(sum(y_hyper_yi));
+    
+    log_unnorm_prob.row(k).fill(calculate_lg);
+  }
+  
+  return log_unnorm_prob;
+}
+
+// [[Rcpp::export]]
+arma::vec norm_exp(arma::vec log_unnorm_prob){
+  
+  /* Description: This function will calculate the normalized probability when
+   *              some elements are negative.
+   * Credit: https://qr.ae/prn3CT (log-sum-exp trick)
+   * Input: log of the unnormalized probability (log_unnorm_prob)
+   * Output: normalized probability
+   */
+  
+  double max_elem = log_unnorm_prob.max(); // Find the maximum value.
+  arma::vec a_unnorm = log_unnorm_prob - max_elem; // Adjust the log_unnorm_prob
+  arma::vec exp_a_norm = arma::exp(a_unnorm); // Take an exponential
+
+  return exp_a_norm/sum(exp_a_norm);
 }
 
 arma::vec adjust_alpha(int K, arma::vec clus_assign, arma::vec alpha_vec){
@@ -279,6 +367,8 @@ Rcpp::List cluster_assign(int K, arma::vec old_assign, arma::vec xi,
                                           y, gamma_hyper, active_clus);
     // Calculate the normalized probability
     arma::vec norm_prob = arma::normalise(unnorm_prob, 1);
+    Rcpp::Rcout << unnorm_prob << std::endl;
+    Rcpp::Rcout << norm_prob << std::endl;
     
     // Reassign a new cluster
     int new_clus = sample_clus(norm_prob, active_clus);
