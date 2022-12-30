@@ -10,13 +10,12 @@
 // - gamma_hyper is a matrix with K by J dimension.
 
 // Tasks: ----------------------------------------------------------------------
-// - Fixed
+// - Step 2: Instead of using gamma function, I will use log(gamma) function.
 
 // Questions and how I fix it: -------------------------------------------------
 // - For Step 1, if all clusters are already active, can we randomly select one 
 //   of the active cluster?
-// * Solution: I will sample one of the already active cluster and pretend that 
-//           this is a new inactive cluster.
+// * Solution: I will skip this step.
 // - For Step 3, split-merge process when ci = cj and all clusters are already 
 //   active.
 // * Solution: I will always reject that proposed assignment.
@@ -64,6 +63,25 @@ Rcpp::List active_inactive(int K, arma::vec clus_assign){
 }
 
 // [[Rcpp::export]]
+double log_density_gamma(arma::rowvec y, arma::rowvec hyper_gamma_k){
+  double log_p = 0.0;
+  
+  /* Description: This is the function for calculating the log of the 
+   *              p(yi|gamma_k)
+   * Input: Data point (y) and hyperparameter for that cluster (hyper_gamma_k)
+   * Output: log(p(yi|gamma_k))
+   */
+  
+  arma::rowvec y_hyper = y + hyper_gamma_k;
+  arma::mat lg_hyper = arma::lgamma(hyper_gamma_k);
+  arma::mat lg_y_hyper = arma::lgamma(y_hyper);
+  
+  log_p += lgamma(sum(hyper_gamma_k)) + arma::accu(lg_y_hyper) -
+    arma::accu(lg_hyper) - lgamma(sum(y_hyper));
+  
+  return log_p;
+}
+
 double density_gamma(arma::rowvec y, arma::rowvec hyper_gamma_k){
   double result;
   
@@ -125,7 +143,6 @@ arma::vec allocate_prob(int i, arma::vec current_assign, arma::vec xi,
     
     // Filter only the observation from cluster i
     arma::mat y_current = y_not_i.rows(current_ci);
-    
     // First term: not consider the observation i
     // Sum for each column and gamma_hyper
     arma::rowvec sum_y_gamma_column = gamma_hyper.t() + sum(y_current, 0); 
@@ -151,6 +168,76 @@ arma::vec allocate_prob(int i, arma::vec current_assign, arma::vec xi,
   }
   
   return unnorm_prob;
+}
+
+// [[Rcpp::export]]
+arma::vec log_allocate_prob(int i, arma::vec current_assign, arma::vec xi, 
+                            arma::mat y, arma::mat gamma_hyper_mat, 
+                            arma::uvec active_clus){
+  
+  arma::vec log_unnorm_prob = -1 * arma::ones(active_clus.size());
+  
+  /* Description: Calculate the log unnormalized probability for each cluster 
+   *              for observation i.
+   * Input: current index (i), current cluster assignment, 
+   *        hyperparameter for cluster (xi), data matrix (y), 
+   *        hyperparameter for the data (gamma_hyper_mat), active cluster.
+   * Output: log unnormalized allocation probability.
+   */
+  
+  // Split the data into two sets: (1) observation i (2) without observation i.
+  arma::rowvec y_i = y.row(i);
+  arma::mat y_not_i = y; 
+  y_not_i.shed_row(i);
+  arma::vec clus_not_i = current_assign; 
+  clus_not_i.shed_row(i);
+  
+  // Calculate the unnormalized allocation probability for each active cluster
+  for(int k = 0; k < active_clus.size(); ++k){
+    int current_c = active_clus[k];
+    arma::uvec current_ci = arma::find(clus_not_i == current_c);
+    
+    // Select the hyperparameter that corresponding to the cluster k
+    arma::rowvec gamma_hyper = arma::conv_to<arma::rowvec>::
+      from(gamma_hyper_mat.row(current_c - 1));
+    double xi_k = xi.at(current_c - 1);
+    
+    // Filter only the observation from cluster i
+    arma::mat y_current = y_not_i.rows(current_ci);
+    
+    // Calculate required vectors
+    arma::rowvec y_hyper = gamma_hyper + arma::sum(y_current, 0);
+    arma::rowvec y_hyper_yi = y_hyper + y_i;
+    double n_xi = xi_k + current_ci.size();
+    
+    // Calculate log(gamma) component.
+    arma::mat lg_y_hyper = arma::lgamma(y_hyper);
+    arma::mat lg_y_hyper_yi = arma::lgamma(y_hyper_yi);
+    
+    double calculate_lg = lgamma(sum(y_hyper)) + arma::accu(lg_y_hyper_yi) +
+      std::log(n_xi) - arma::accu(lg_y_hyper) - lgamma(sum(y_hyper_yi));
+    
+    log_unnorm_prob.row(k).fill(calculate_lg);
+  }
+  
+  return log_unnorm_prob;
+}
+
+// [[Rcpp::export]]
+arma::vec norm_exp(arma::vec log_unnorm_prob){
+  
+  /* Description: This function will calculate the normalized probability when
+   *              some elements are negative.
+   * Credit: https://qr.ae/prn3CT (log-sum-exp trick)
+   * Input: log of the unnormalized probability (log_unnorm_prob)
+   * Output: normalized probability
+   */
+  
+  double max_elem = log_unnorm_prob.max(); // Find the maximum value.
+  arma::vec a_unnorm = log_unnorm_prob - max_elem; // Adjust the log_unnorm_prob
+  arma::vec exp_a_norm = arma::exp(a_unnorm); // Take an exponential
+
+  return exp_a_norm/sum(exp_a_norm);
 }
 
 arma::vec adjust_alpha(int K, arma::vec clus_assign, arma::vec alpha_vec){
@@ -227,25 +314,32 @@ Rcpp::List expand_step(int K, arma::vec old_assign, arma::vec alpha,
   // Sample alpha for new active cluster
   alpha.at(candidate_clus - 1) = R::rgamma(xi.at(candidate_clus - 1), 1);
   
-  // Calculate the acceptance probability and assign a new cluster
-  arma::vec accept_prob = (alpha.at(candidate_clus - 1)/alpha) * 
-    ((sum(alpha) - alpha.at(candidate_clus - 1))/sum(alpha)) * 
-    (a_theta/b_theta);
+  // Calculate the log of acceptance probability and assign a new cluster
+  arma::vec log_accept_prob = std::log(alpha.at(candidate_clus - 1)) + 
+    std::log((sum(alpha) - alpha.at(candidate_clus - 1))) + 
+    std::log(a_theta) - arma::log(alpha) - std::log(sum(alpha)) -
+    std::log(b_theta);
   
   arma::vec new_assign = old_assign;
   for(int i = 0; i < old_assign.size(); ++i){
-    double prob = accept_prob.at(old_assign.at(i) - 1) *
-      density_gamma(y.row(i), gamma_hyper.row(candidate_clus - 1)) /
-        density_gamma(y.row(i), gamma_hyper.row(old_assign.at(i) - 1));
-    double A = std::min(prob, 1.0);
-    double U = arma::randu();
-    if(U <= A){
-      new_assign.at(i) = candidate_clus;
+    double log_prob = log_accept_prob.at(old_assign.at(i) - 1) +
+      log_density_gamma(y.row(i), gamma_hyper.row(candidate_clus - 1)) -
+      log_density_gamma(y.row(i), gamma_hyper.row(old_assign.at(i) - 1));
+    double log_A = std::min(log_prob, 0.0);
+    double log_U = std::log(arma::randu());
+    if(log_U <= log_A){
+      new_assign.row(i).fill(candidate_clus);
     }
   }
   
   // Adjust an alpha vector
   arma::vec new_alpha = adjust_alpha(K, new_assign, alpha);
+  
+  // If all clusters are already active, we will reject this step.
+  if(active_clus.size() == K){
+    new_assign = old_assign;
+    new_alpha = alpha;
+  }
   
   result["new_alpha"] = new_alpha;
   result["new_assign"] = new_assign;
@@ -261,8 +355,6 @@ Rcpp::List cluster_assign(int K, arma::vec old_assign, arma::vec xi,
   Rcpp::List result;
   arma::vec new_assign = old_assign;
   
-  // Assume that all clusters share the same hyperparameters (gamma)
-  
   /* Input: maximum cluster (K), previous cluster assignment, 
    *        hyperparameter for cluster (xi), data matrix (y), 
    *        hyperparameter for the data (gamma)
@@ -276,16 +368,13 @@ Rcpp::List cluster_assign(int K, arma::vec old_assign, arma::vec xi,
   // Assign a new assignment
   for(int i = 0; i < new_assign.size(); ++i){
     // Calculate the unnormalized probability
-    arma::vec unnorm_prob = allocate_prob(i, new_assign, xi, 
-                                          y, gamma_hyper, active_clus);
+    arma::vec log_unnorm_prob = log_allocate_prob(i, new_assign, xi, 
+                                                  y, gamma_hyper, active_clus);
     // Calculate the normalized probability
-    arma::vec norm_prob = arma::normalise(unnorm_prob, 1);
+    arma::vec norm_prob = norm_exp(log_unnorm_prob);
     
-    Rcpp::Rcout << active_clus << std::endl;
-    Rcpp::Rcout << norm_prob << std::endl;
     // Reassign a new cluster
     int new_clus = sample_clus(norm_prob, active_clus);
-    Rcpp::Rcout << new_clus << std::endl;
     new_assign.row(i).fill(new_clus);
   }
   
@@ -314,7 +403,6 @@ Rcpp::List split_merge(int K, arma::vec old_assign, arma::vec alpha,
    */ 
   
   // Initial the alpha vector and assignment vector
-  
   arma::vec launch_assign = old_assign;
   arma::vec launch_alpha = alpha;
   
@@ -370,14 +458,14 @@ Rcpp::List split_merge(int K, arma::vec old_assign, arma::vec alpha,
   for(int t = 0; t < sm_iter; ++t){
     for(int i = 0; i < s_index.size(); ++i){
       int current_obs = s_index.at(i);
-      arma::vec unnorm_prob = allocate_prob(current_obs, launch_assign, xi, 
-                                            y, gamma_hyper, cluster_launch);
-      arma::vec norm_prob = arma::normalise(unnorm_prob, 1);
+      arma::vec log_unnorm_prob = log_allocate_prob(current_obs, launch_assign, 
+                                                    xi, y, gamma_hyper, 
+                                                    cluster_launch);
+      arma::vec norm_prob = norm_exp(log_unnorm_prob);
       launch_assign.row(current_obs).
       fill(sample_clus(norm_prob, cluster_launch));
     }
   }
-  
   
   // Prepare for the split-merge process
   double sm_indicator = 0.0;
@@ -397,12 +485,12 @@ Rcpp::List split_merge(int K, arma::vec old_assign, arma::vec alpha,
   // Split-Merge Process
   if(c_i != c_j){ 
     // merge these two clusters into c_j cluster
-    Rcpp::Rcout << "final: merge" << std::endl;
+    // Rcpp::Rcout << "final: merge" << std::endl;
     sm_indicator = 1.0;
     new_assign.elem(s_index).fill(c_j);
   } else if((c_i == c_j) and (active_sm.size() != K)) { 
     // split in case that at least one cluster is inactive.
-    Rcpp::Rcout << "final: split (some inactive)" << std::endl;
+    // Rcpp::Rcout << "final: split (some inactive)" << std::endl;
     sm_indicator = -1.0;
     
     // sample a new inactive cluster
@@ -414,10 +502,14 @@ Rcpp::List split_merge(int K, arma::vec old_assign, arma::vec alpha,
     
     for(int i = 0; i < s_index.size(); ++i){
       int current_obs = s_index.at(i);
-      arma::vec unnorm_prob = allocate_prob(current_obs, new_assign, xi, 
-                                            y, gamma_hyper, cluster_sm);
-      arma::vec norm_prob = arma::normalise(unnorm_prob, 1);
-      new_assign.row(current_obs).fill(sample_clus(norm_prob, cluster_sm));
+      if((current_obs != obs_i) and (current_obs != obs_j)){
+        arma::vec log_unnorm_prob = log_allocate_prob(current_obs, new_assign, 
+                                                      xi, y, gamma_hyper, 
+                                                      cluster_sm);
+        arma::vec norm_prob = norm_exp(log_unnorm_prob);
+        // Rcpp::Rcout << norm_prob << std::endl;
+        new_assign.row(current_obs).fill(sample_clus(norm_prob, cluster_sm));
+      }
     }
   } else {
     // Rcpp::Rcout << "final: split (none inactive)" << std::endl;
@@ -512,7 +604,7 @@ arma::vec update_alpha(int K, arma::vec alpha, arma::vec xi,
 Rcpp::List cluster_func(int K, arma::vec old_assign, arma::vec alpha,
                         arma::vec xi, arma::mat y, arma::mat gamma_hyper, 
                         double a_theta, double b_theta, int sm_iter, 
-                        int all_iter){
+                        int all_iter, bool print_iter, int iter_print){
   Rcpp::List result;
   
   /* Input: maximum cluster (K), previous cluster assignment, 
@@ -520,7 +612,8 @@ Rcpp::List cluster_func(int K, arma::vec old_assign, arma::vec alpha,
    *        data matrix (y), hyperparameter for the data (gamma),
    *        hyperparameter (a_theta, b_theta), 
    *        iteration for the split-merge process (sm_iter)
-   *        overall iteration (all_iter).
+   *        overall iteration (all_iter), print progress (print_iter),
+   *        if printed, preint every iter_print iteration.
    * Output: new cluster weight, updated cluster assignment, 
    *         number of active cluster in each iteration.
    */ 
@@ -540,7 +633,11 @@ Rcpp::List cluster_func(int K, arma::vec old_assign, arma::vec alpha,
   
   for(int i = 0; i < all_iter; ++i){
     
-    // Rcpp::Rcout << i << std::endl;
+    if(print_iter == true){
+      if((i+1) % iter_print == 0){
+        Rcpp::Rcout << (i + 1) << std::endl;
+      }
+    }
     
     // Initial value
     arma::vec current_assign = clus_assign.col(i);

@@ -9,12 +9,20 @@ active_inactive <- function(K, clus_assign) {
     .Call(`_ClusterProj_active_inactive`, K, clus_assign)
 }
 
-density_gamma <- function(y, hyper_gamma_k) {
-    .Call(`_ClusterProj_density_gamma`, y, hyper_gamma_k)
+log_density_gamma <- function(y, hyper_gamma_k) {
+    .Call(`_ClusterProj_log_density_gamma`, y, hyper_gamma_k)
 }
 
 allocate_prob <- function(i, current_assign, xi, y, gamma_hyper_mat, active_clus) {
     .Call(`_ClusterProj_allocate_prob`, i, current_assign, xi, y, gamma_hyper_mat, active_clus)
+}
+
+log_allocate_prob <- function(i, current_assign, xi, y, gamma_hyper_mat, active_clus) {
+    .Call(`_ClusterProj_log_allocate_prob`, i, current_assign, xi, y, gamma_hyper_mat, active_clus)
+}
+
+norm_exp <- function(log_unnorm_prob) {
+    .Call(`_ClusterProj_norm_exp`, log_unnorm_prob)
 }
 
 rdirichlet_cpp <- function(num_samples, alpha_m) {
@@ -37,7 +45,7 @@ update_alpha <- function(K, alpha, xi, old_assign) {
     .Call(`_ClusterProj_update_alpha`, K, alpha, xi, old_assign)
 }
 
-cluster_func <- function(K, old_assign, alpha, xi, y, gamma_hyper, a_theta, b_theta, sm_iter, all_iter) {
-    .Call(`_ClusterProj_cluster_func`, K, old_assign, alpha, xi, y, gamma_hyper, a_theta, b_theta, sm_iter, all_iter)
+cluster_func <- function(K, old_assign, alpha, xi, y, gamma_hyper, a_theta, b_theta, sm_iter, all_iter, print_iter, iter_print) {
+    .Call(`_ClusterProj_cluster_func`, K, old_assign, alpha, xi, y, gamma_hyper, a_theta, b_theta, sm_iter, all_iter, print_iter, iter_print)
 }
 
