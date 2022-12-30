@@ -8,9 +8,11 @@
 // - Instead of interested in psi, we will use alpha vector instead.
 // - alpha vector is K dimension.
 // - gamma_hyper is a matrix with K by J dimension.
+// - For the numerical stability, I will take logarithm function on the 
+//   probability term, especially for the allocation probability.
 
 // Tasks: ----------------------------------------------------------------------
-// - Step 2: Instead of using gamma function, I will use log(gamma) function.
+// * Done *
 
 // Questions and how I fix it: -------------------------------------------------
 // - For Step 1, if all clusters are already active, can we randomly select one 
@@ -301,49 +303,42 @@ Rcpp::List expand_step(int K, arma::vec old_assign, arma::vec alpha,
   arma::uvec inactive_clus = List_clusters["inactive"];
   arma::uvec active_clus = List_clusters["active"];
   
-  // If all clusters are already active, we randomly select the cluster from 
-  // those which already active.
-  if(inactive_clus.size() == 0){
-    inactive_clus = active_clus;
-  }
-  
-  // Select a candidate cluster
-  arma::vec samp_prob = arma::ones(inactive_clus.size())/inactive_clus.size();
-  int candidate_clus = sample_clus(samp_prob, inactive_clus);
-  
-  // Sample alpha for new active cluster
-  alpha.at(candidate_clus - 1) = R::rgamma(xi.at(candidate_clus - 1), 1);
-  
-  // Calculate the log of acceptance probability and assign a new cluster
-  arma::vec log_accept_prob = std::log(alpha.at(candidate_clus - 1)) + 
-    std::log((sum(alpha) - alpha.at(candidate_clus - 1))) + 
-    std::log(a_theta) - arma::log(alpha) - std::log(sum(alpha)) -
-    std::log(b_theta);
-  
-  arma::vec new_assign = old_assign;
-  for(int i = 0; i < old_assign.size(); ++i){
-    double log_prob = log_accept_prob.at(old_assign.at(i) - 1) +
-      log_density_gamma(y.row(i), gamma_hyper.row(candidate_clus - 1)) -
-      log_density_gamma(y.row(i), gamma_hyper.row(old_assign.at(i) - 1));
-    double log_A = std::min(log_prob, 0.0);
-    double log_U = std::log(arma::randu());
-    if(log_U <= log_A){
-      new_assign.row(i).fill(candidate_clus);
+  if(active_clus.size() < K){
+    // Select a candidate cluster
+    arma::vec samp_prob = arma::ones(inactive_clus.size())/inactive_clus.size();
+    int candidate_clus = sample_clus(samp_prob, inactive_clus);
+    
+    // Sample alpha for new active cluster
+    alpha.row(candidate_clus - 1).fill(R::rgamma(xi.at(candidate_clus - 1), 1));
+    
+    // Calculate the log of acceptance probability and assign a new cluster
+    arma::vec log_accept_prob = std::log(alpha.at(candidate_clus - 1)) + 
+      std::log((sum(alpha) - alpha.at(candidate_clus - 1))) + 
+      std::log(a_theta) - arma::log(alpha) - std::log(sum(alpha)) -
+      std::log(b_theta);
+    
+    arma::vec new_assign = old_assign;
+    for(int i = 0; i < old_assign.size(); ++i){
+      double log_prob = log_accept_prob.at(old_assign.at(i) - 1) +
+        log_density_gamma(y.row(i), gamma_hyper.row(candidate_clus - 1)) -
+        log_density_gamma(y.row(i), gamma_hyper.row(old_assign.at(i) - 1));
+      double log_A = std::min(log_prob, 0.0);
+      double log_U = std::log(arma::randu());
+      if(log_U <= log_A){
+        new_assign.row(i).fill(candidate_clus);
+      }
     }
+    
+    // Adjust an alpha vector
+    arma::vec new_alpha = adjust_alpha(K, new_assign, alpha);
+    
+    result["new_alpha"] = new_alpha;
+    result["new_assign"] = new_assign;
+  } else {
+    result["new_alpha"] = alpha;
+    result["new_assign"] = old_assign;
   }
   
-  // Adjust an alpha vector
-  arma::vec new_alpha = adjust_alpha(K, new_assign, alpha);
-  
-  // If all clusters are already active, we will reject this step.
-  if(active_clus.size() == K){
-    new_assign = old_assign;
-    new_alpha = alpha;
-  }
-  
-  result["new_alpha"] = new_alpha;
-  result["new_assign"] = new_assign;
-
   return result;
 }
 

@@ -1,7 +1,7 @@
 [
     {
         "file": "/Users/kevinkvp/Desktop/Research/ClusterProj/src/main.cpp",
-        "file_last_write": 1672290903.0,
+        "file_last_write": 1672416332.0,
         "definitions": [
             {
                 "usr": "c:@F@sample_clus#$@N@arma@S@Col>#d#$@N@arma@S@Col>#i#",
@@ -9,7 +9,7 @@
                 "parent_name": "",
                 "name": "sample_clus(arma::vec, arma::uvec)",
                 "file": "/Users/kevinkvp/Desktop/Research/ClusterProj/src/main.cpp",
-                "line": 26,
+                "line": 27,
                 "column": 5,
                 "hidden": false
             },
@@ -19,8 +19,18 @@
                 "parent_name": "",
                 "name": "active_inactive(int, arma::vec)",
                 "file": "/Users/kevinkvp/Desktop/Research/ClusterProj/src/main.cpp",
-                "line": 45,
+                "line": 46,
                 "column": 12,
+                "hidden": false
+            },
+            {
+                "usr": "c:@F@log_density_gamma#$@N@arma@S@Row>#d#S0_#",
+                "kind": 6,
+                "parent_name": "",
+                "name": "log_density_gamma(arma::rowvec, arma::rowvec)",
+                "file": "/Users/kevinkvp/Desktop/Research/ClusterProj/src/main.cpp",
+                "line": 68,
+                "column": 8,
                 "hidden": false
             },
             {
@@ -29,7 +39,7 @@
                 "parent_name": "",
                 "name": "density_gamma(arma::rowvec, arma::rowvec)",
                 "file": "/Users/kevinkvp/Desktop/Research/ClusterProj/src/main.cpp",
-                "line": 67,
+                "line": 87,
                 "column": 8,
                 "hidden": false
             },
@@ -39,7 +49,27 @@
                 "parent_name": "",
                 "name": "allocate_prob(int, arma::vec, arma::vec, arma::mat, arma::mat, arma::uvec)",
                 "file": "/Users/kevinkvp/Desktop/Research/ClusterProj/src/main.cpp",
-                "line": 96,
+                "line": 116,
+                "column": 11,
+                "hidden": false
+            },
+            {
+                "usr": "c:@F@log_allocate_prob#I#$@N@arma@S@Col>#d#S0_#$@N@arma@S@Mat>#d#S1_#$@N@arma@S@Col>#i#",
+                "kind": 6,
+                "parent_name": "",
+                "name": "log_allocate_prob(int, arma::vec, arma::vec, arma::mat, arma::mat, arma::uvec)",
+                "file": "/Users/kevinkvp/Desktop/Research/ClusterProj/src/main.cpp",
+                "line": 176,
+                "column": 11,
+                "hidden": false
+            },
+            {
+                "usr": "c:@F@norm_exp#$@N@arma@S@Col>#d#",
+                "kind": 6,
+                "parent_name": "",
+                "name": "norm_exp(arma::vec)",
+                "file": "/Users/kevinkvp/Desktop/Research/ClusterProj/src/main.cpp",
+                "line": 229,
                 "column": 11,
                 "hidden": false
             },
@@ -49,7 +79,7 @@
                 "parent_name": "",
                 "name": "adjust_alpha(int, arma::vec, arma::vec)",
                 "file": "/Users/kevinkvp/Desktop/Research/ClusterProj/src/main.cpp",
-                "line": 155,
+                "line": 245,
                 "column": 11,
                 "hidden": false
             },
@@ -59,7 +89,7 @@
                 "parent_name": "",
                 "name": "rdirichlet_cpp(int, arma::vec)",
                 "file": "/Users/kevinkvp/Desktop/Research/ClusterProj/src/main.cpp",
-                "line": 172,
+                "line": 262,
                 "column": 11,
                 "hidden": false
             },
@@ -69,7 +99,7 @@
                 "parent_name": "",
                 "name": "expand_step(int, arma::vec, arma::vec, arma::vec, arma::mat, arma::mat, double, double)",
                 "file": "/Users/kevinkvp/Desktop/Research/ClusterProj/src/main.cpp",
-                "line": 199,
+                "line": 289,
                 "column": 12,
                 "hidden": false
             },
@@ -79,7 +109,7 @@
                 "parent_name": "",
                 "name": "cluster_assign(int, arma::vec, arma::vec, arma::mat, arma::mat, arma::vec)",
                 "file": "/Users/kevinkvp/Desktop/Research/ClusterProj/src/main.cpp",
-                "line": 257,
+                "line": 347,
                 "column": 12,
                 "hidden": false
             },
@@ -89,7 +119,7 @@
                 "parent_name": "",
                 "name": "split_merge(int, arma::vec, arma::vec, arma::vec, arma::mat, arma::mat, double, double, int)",
                 "file": "/Users/kevinkvp/Desktop/Research/ClusterProj/src/main.cpp",
-                "line": 299,
+                "line": 387,
                 "column": 12,
                 "hidden": false
             },
@@ -99,7 +129,7 @@
                 "parent_name": "",
                 "name": "update_alpha(int, arma::vec, arma::vec, arma::vec)",
                 "file": "/Users/kevinkvp/Desktop/Research/ClusterProj/src/main.cpp",
-                "line": 476,
+                "line": 565,
                 "column": 11,
                 "hidden": false
             },
@@ -109,7 +139,7 @@
                 "parent_name": "",
                 "name": "cluster_func(int, arma::vec, arma::vec, arma::vec, arma::mat, arma::mat, double, double, int, int, bool, int)",
                 "file": "/Users/kevinkvp/Desktop/Research/ClusterProj/src/main.cpp",
-                "line": 510,
+                "line": 599,
                 "column": 12,
                 "hidden": false
             }
