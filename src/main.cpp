@@ -15,8 +15,7 @@
 // Questions and how I fix it: -------------------------------------------------
 // - For Step 1, if all clusters are already active, can we randomly select one 
 //   of the active cluster?
-// * Solution: I will sample one of the already active cluster and pretend that 
-//           this is a new inactive cluster.
+// * Solution: I will skip this step.
 // - For Step 3, split-merge process when ci = cj and all clusters are already 
 //   active.
 // * Solution: I will always reject that proposed assignment.
@@ -79,6 +78,7 @@ double log_density_gamma(arma::rowvec y, arma::rowvec hyper_gamma_k){
   
   log_p += lgamma(sum(hyper_gamma_k)) + arma::accu(lg_y_hyper) -
     arma::accu(lg_hyper) - lgamma(sum(y_hyper));
+  
   return log_p;
 }
 
@@ -314,25 +314,32 @@ Rcpp::List expand_step(int K, arma::vec old_assign, arma::vec alpha,
   // Sample alpha for new active cluster
   alpha.at(candidate_clus - 1) = R::rgamma(xi.at(candidate_clus - 1), 1);
   
-  // Calculate the acceptance probability and assign a new cluster
-  arma::vec accept_prob = (alpha.at(candidate_clus - 1)/alpha) * 
-    ((sum(alpha) - alpha.at(candidate_clus - 1))/sum(alpha)) * 
-    (a_theta/b_theta);
+  // Calculate the log of acceptance probability and assign a new cluster
+  arma::vec log_accept_prob = std::log(alpha.at(candidate_clus - 1)) + 
+    std::log((sum(alpha) - alpha.at(candidate_clus - 1))) + 
+    std::log(a_theta) - arma::log(alpha) - std::log(sum(alpha)) -
+    std::log(b_theta);
   
   arma::vec new_assign = old_assign;
   for(int i = 0; i < old_assign.size(); ++i){
-    double prob = accept_prob.at(old_assign.at(i) - 1) *
-      density_gamma(y.row(i), gamma_hyper.row(candidate_clus - 1)) /
-        density_gamma(y.row(i), gamma_hyper.row(old_assign.at(i) - 1));
-    double A = std::min(prob, 1.0);
-    double U = arma::randu();
-    if(U <= A){
-      new_assign.at(i) = candidate_clus;
+    double log_prob = log_accept_prob.at(old_assign.at(i) - 1) +
+      log_density_gamma(y.row(i), gamma_hyper.row(candidate_clus - 1)) -
+      log_density_gamma(y.row(i), gamma_hyper.row(old_assign.at(i) - 1));
+    double log_A = std::min(log_prob, 0.0);
+    double log_U = std::log(arma::randu());
+    if(log_U <= log_A){
+      new_assign.row(i).fill(candidate_clus);
     }
   }
   
   // Adjust an alpha vector
   arma::vec new_alpha = adjust_alpha(K, new_assign, alpha);
+  
+  // If all clusters are already active, we will reject this step.
+  if(active_clus.size() == K){
+    new_assign = old_assign;
+    new_alpha = alpha;
+  }
   
   result["new_alpha"] = new_alpha;
   result["new_assign"] = new_assign;
