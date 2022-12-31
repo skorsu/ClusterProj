@@ -13,16 +13,12 @@ log_density_gamma <- function(y, hyper_gamma_k) {
     .Call(`_ClusterProj_log_density_gamma`, y, hyper_gamma_k)
 }
 
-allocate_prob <- function(i, current_assign, xi, y, gamma_hyper_mat, active_clus) {
-    .Call(`_ClusterProj_allocate_prob`, i, current_assign, xi, y, gamma_hyper_mat, active_clus)
-}
-
 log_allocate_prob <- function(i, current_assign, xi, y, gamma_hyper_mat, active_clus) {
     .Call(`_ClusterProj_log_allocate_prob`, i, current_assign, xi, y, gamma_hyper_mat, active_clus)
 }
 
-norm_exp <- function(log_unnorm_prob) {
-    .Call(`_ClusterProj_norm_exp`, log_unnorm_prob)
+log_sum_exp <- function(log_unnorm_prob) {
+    .Call(`_ClusterProj_log_sum_exp`, log_unnorm_prob)
 }
 
 rdirichlet_cpp <- function(num_samples, alpha_m) {
