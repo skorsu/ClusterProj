@@ -10,38 +10,23 @@
 // - gamma_hyper is a matrix with K by J dimension.
 // - For the numerical stability, I will take logarithm function on the 
 //   probability term, especially for the allocation probability.
+// - For Step 1, if all clusters are already active, I will skip this step for 
+//   that iteration..
+// - For Step 3, split-merge process when ci = cj and all clusters are already 
+//   active. I will always reject that proposed assignment.
 
 // Tasks: ----------------------------------------------------------------------
-// * Done *
+// - Matt's Email (2022/12/31)
+//   * The rows of gamma_init should be unique. Otherwise, you are implying 
+//     that the probabilities across clusters are the same.
+//   * Instead of related the row of gamma_init to K, link gamma_init to K_init 
+//     instead.
 
-// Questions and how I fix it: -------------------------------------------------
-// - For Step 1, if all clusters are already active, can we randomly select one 
-//   of the active cluster?
-// * Solution: I will skip this step.
-// - For Step 3, split-merge process when ci = cj and all clusters are already 
-//   active.
-// * Solution: I will always reject that proposed assignment.
+// Questions: ------------------------------------------------------------------
+// - For the gamma_init matrix, how can we determine that which rows are 
+//   duplicated? Consider only maximum only or consider the proportion?
 
 // User-defined function: ------------------------------------------------------
-// [[Rcpp::export]]
-int sample_clus(arma::vec norm_probs, arma::uvec active_clus){
-  
-  /* Description: To run a multinomial distribution and get the reallocated 
-   *              cluster.
-   * Input: Normalized probability (norm_prob), active cluster
-   * Output: New assigned cluster
-   */
-  
-  int k = active_clus.size();
-  arma::imat C = arma::imat(k, 1);
-  rmultinom(1, norm_probs.begin(), k, C.colptr(0));
-  
-  arma::mat mat_index = arma::conv_to<arma::mat>::from(arma::index_max(C));
-  int new_clus = active_clus.at(mat_index(0, 0));
-  
-  return new_clus;
-}
-
 // [[Rcpp::export]]
 Rcpp::List active_inactive(int K, arma::vec clus_assign){
   Rcpp::List result;
@@ -60,8 +45,153 @@ Rcpp::List active_inactive(int K, arma::vec clus_assign){
   
   result["active"] = active_clus;
   result["inactive"] = inactive_clus;
-
+  
   return result;
+}
+
+// [[Rcpp::export]]
+Rcpp::List check_unique_gamma(int K, arma::vec old_assign, 
+                              arma::mat gamma_init){
+  Rcpp::List result;
+  
+  /* Description: This function will check whether there are any duplicated row 
+   *              or not. If there is a duplicate row, this function will merge 
+   *              this two clusters.
+   * Input: Maximum Potential Clusters (K), 
+   *        Previous cluster assignment (old_assign), 
+   *        Hyperparameter for each cluster (gamma_init)
+   * Output: updated cluster assignment and hyperparameter.
+   */
+  
+  // Create a new matrix with the maximum indicator for each row.
+  arma::vec max_vec = arma::max(gamma_init, 1);
+  arma::mat max_mat = arma::mat(arma::size(gamma_init));
+  for(int r = 0; r < max_mat.n_rows; ++r){
+    arma::vec row_r = arma::conv_to<arma::vec>::from(gamma_init.row(r));
+    arma::uvec max_ind = arma::find(row_r == max_vec.at(r));
+    arma::uvec not_max_ind = arma::find(row_r != max_vec.at(r));
+    row_r.elem(max_ind).fill(1);
+    row_r.elem(not_max_ind).fill(0);
+    max_mat.row(r) = row_r.t();
+  }
+  
+  // If all element in that row are all zeros, we collapse that cluster.
+  arma::ucolvec bool_vec = arma::all(gamma_init == 0, 1);
+  arma::uvec active_clus = arma::find(bool_vec == 0) + 1;
+  arma::uvec inactive_clus = arma::find(bool_vec == 1) + 1;
+  for(int i = 0; i < inactive_clus.size(); ++i){
+    int inac_clus = inactive_clus.at(i);
+    max_mat.row(inac_clus - 1) = arma::zeros(1, max_mat.n_cols);
+    arma::uvec inac_elem = arma::find(old_assign == inac_clus);
+    arma::vec samp_index = arma::conv_to<arma::vec>::
+      from(arma::randi(inac_elem.size(), 
+                       arma::distr_param(1, active_clus.size())) - 1);
+    for(int j = 0; j < samp_index.size(); ++j){
+      old_assign.row(inac_elem.at(j)).fill(active_clus.at(samp_index.at(j)));
+    }
+  }
+  
+  // Merge the duplicated row of gamma
+  arma::uvec duplicate_row;
+  for(int i = 0; i < max_mat.n_rows - 1; ++i){
+    for(int j = (i + 1); j < max_mat.n_rows; ++j){
+      if(arma::all(max_mat.row(i) == max_mat.row(j))){
+        // If the row are same, we merge the cluster j to cluster i.
+        int clus_j = j + 1;
+        arma::uvec clus_j_elem = arma::find(old_assign == clus_j);
+        old_assign.rows(clus_j_elem).fill(i + 1);
+        // Record that row
+        int last_rec = duplicate_row.size();
+        arma::uvec row_j(1);
+        row_j.row(0).fill(j);
+        duplicate_row.insert_rows(last_rec, row_j);
+      }
+    }
+  }
+  
+  max_mat.rows(duplicate_row).fill(0.0);
+  
+  // Add row of gamma_init and norm_max_mat
+  if(max_mat.n_rows < K){
+    arma::mat inactive_zero = arma::zeros(K - max_mat.n_rows, max_mat.n_cols);
+    max_mat.insert_rows(max_mat.n_rows, inactive_zero);
+  }
+  
+  // For the rows with all zeros, we will randomly simulate gamma.
+  for(int r = 0; r < max_mat.n_rows; ++r){
+    if(all(max_mat.row(r) == 0.0)){
+      bool new_row_dup = true;
+      
+      while(new_row_dup){
+        // Proposed a new row of gamma_init
+        arma::vec proposed_gamma = arma::zeros(max_mat.n_cols);
+        while(all(proposed_gamma == 0.0)){
+          proposed_gamma.randu();
+          arma::uvec set_one = arma::find(proposed_gamma > 0.5);
+          arma::uvec set_zero = arma::find(proposed_gamma <= 0.5);
+          proposed_gamma.elem(set_one).fill(1.0);
+          proposed_gamma.elem(set_zero).fill(0.0);
+        }
+        
+        int n_distinct = 0;
+        for(int k = 0; k < max_mat.n_rows; ++k){
+          if(r != k){
+            arma::vec one_indicator_k = 
+              arma::conv_to<arma::vec>::from(max_mat.row(k));
+            one_indicator_k.elem(arma::find(one_indicator_k != 1.0)).fill(0.0);
+            if(all(one_indicator_k == proposed_gamma)){
+              n_distinct += 1;
+            }
+          }
+        }
+        
+        if(n_distinct == 0){
+          new_row_dup = false;
+          max_mat.row(r) = proposed_gamma.t();
+        }
+        
+      }
+    }
+  }
+  
+  max_mat *= 0.5;
+  max_mat.elem(arma::find(max_mat == 0.0)).fill(0.1);
+  
+  result["adjusted_gamma"] = max_mat;
+  result["adjusted_old_assign"] = old_assign;
+  
+  return result;
+}
+
+// [[Rcpp::export]]
+arma::vec xi_adjust(arma::vec previous_xi){
+  
+  arma::uvec elem_zero = arma::find(previous_xi == 0);
+  arma::uvec elem_non_zero = arma::find(previous_xi != 0);
+  
+  double xi_sub = mean(previous_xi.elem(elem_non_zero)); 
+  previous_xi.elem(elem_zero).fill(xi_sub);
+  
+  return previous_xi;
+}
+
+// [[Rcpp::export]]
+int sample_clus(arma::vec norm_probs, arma::uvec active_clus){
+  
+  /* Description: To run a multinomial distribution and get the reallocated 
+   *              cluster.
+   * Input: Normalized probability (norm_prob), active cluster
+   * Output: New assigned cluster
+   */
+  
+  int k = active_clus.size();
+  arma::imat C = arma::imat(k, 1);
+  rmultinom(1, norm_probs.begin(), k, C.colptr(0));
+  
+  arma::mat mat_index = arma::conv_to<arma::mat>::from(arma::index_max(C));
+  int new_clus = active_clus.at(mat_index(0, 0));
+  
+  return new_clus;
 }
 
 // [[Rcpp::export]]
@@ -593,7 +723,113 @@ Rcpp::List cluster_func(int K, arma::vec old_assign, arma::vec alpha,
   return result;
 }
 
-
+// [[Rcpp::export]]
+Rcpp::List clus_func_new(int iter, int K, int K_init, arma::mat data_mat, 
+                         arma::mat gamma_hyper, arma::vec xi,
+                         double a_theta, double b_theta, int sm_iter){
+  Rcpp::List result;
+  
+  // The maximum value of K is 2^(columns of data) - 1
+  if(K > (std::pow(2.0, data_mat.n_cols) - 1.0)){
+    Rcpp::Rcout << "K cannot be exceed 2^(columns of data) - 1." << std::endl;
+    Rcpp::Rcout << "Fixed: Let K equals to 2^(columns of data) - 1." << std::endl;
+    int K_adjust = std::pow(2.0, data_mat.n_cols) - 1.0;
+    K = K_adjust;
+  }
+  
+  // K_init should less than or equal to K.
+  if(K_init > K){
+    Rcpp::Rcout << "K must greater than or equal to K_init." << std::endl;
+    Rcpp::Rcout << "Fixed: Let K_init equals to K." << std::endl;
+    K_init = K;
+  }
+  
+  // Initial the value of ci
+  arma::vec old_assign = arma::conv_to<arma::vec>::
+    from(arma::randi(data_mat.n_rows, arma::distr_param(1, K_init)));
+  
+  // Check the gamma_hyper
+  // Need to check: (1) Number of row matches K_init. (2) Duplicate
+  if(gamma_hyper.n_rows < K_init){
+    arma::mat appended_mat = arma::mat(K_init - gamma_hyper.n_rows, 
+                                       gamma_hyper.n_cols, arma::fill::randu);
+    gamma_hyper.insert_rows(gamma_hyper.n_rows, appended_mat);
+  } else if(gamma_hyper.n_rows > K_init){
+    gamma_hyper.shed_rows(K_init, gamma_hyper.n_rows - 1);
+  }
+  
+  // Deals with duplicated row and all-zeros.
+  Rcpp::List adjust_cluster = check_unique_gamma(K, old_assign, gamma_hyper);
+  arma::mat adj_gamma_hyper = adjust_cluster["adjusted_gamma"];
+  arma::vec adj_old_assign = adjust_cluster["adjusted_old_assign"];
+  
+  // Adjust xi vector and initialize the alpha vector
+  arma::vec alpha_vec = arma::zeros(K);
+  // For xi, need to (1) extend to K dimension.
+  if(xi.size() > K_init){
+    xi.shed_rows(K_init, xi.size() - 1);
+  }
+  arma::vec appended_xi = arma::zeros(K - xi.size());
+  xi.insert_rows(xi.size(), appended_xi);
+  // (2) Set a xi equals to 0 for inactive cluster.
+  Rcpp::List clus_pre = active_inactive(K, adj_old_assign);
+  arma::uvec pre_inactive = clus_pre["inactive"];
+  xi.elem(pre_inactive - 1).fill(0);
+  // (3) Initial the alpha for non-zero xi.
+  for(int k = 0; k < K; ++k){
+    if(xi.at(k) != 0){
+      alpha_vec.row(k).fill(R::rgamma(xi.at(k), 1.0));
+    }
+  }
+  
+  arma::vec xi_adjusted = xi_adjust(xi);
+  
+  /*
+  result["adj_gamma_hyper"] = adj_gamma_hyper;
+  result["adj_old_assign"] = adj_old_assign;
+  result["xi_adjusted"] = xi_adjusted;
+  result["alpha"] = alpha_vec;
+  */
+  
+  int i = 0;
+  arma::mat iter_clus = arma::mat(data_mat.n_rows, iter);
+  while(i < iter){
+    
+    // Step 1: Expand Step
+    Rcpp::List result_s1 = expand_step(K, adj_old_assign, alpha_vec, 
+                                       xi_adjusted, data_mat, adj_gamma_hyper, 
+                                       a_theta, b_theta);
+    arma::vec expand_assign = result_s1["new_assign"];
+    arma::vec expand_alpha = result_s1["new_alpha"];
+    
+    // Step 2: Reallocation
+    Rcpp::List result_s2 = cluster_assign(K, expand_assign, xi_adjusted, 
+                                          data_mat, adj_gamma_hyper, 
+                                          expand_alpha);
+    arma::vec reallocate_assign = result_s2["new_assign"];
+    arma::vec reallocate_alpha = result_s2["new_alpha"];
+    
+    // Step 3: Split-Merge
+    Rcpp::List result_s3 = split_merge(K, reallocate_assign, reallocate_alpha,
+                                       xi_adjusted, data_mat, adj_gamma_hyper, 
+                                       a_theta, b_theta, sm_iter);
+    arma::vec sm_assign = result_s3["new_assign"];
+    arma::vec sm_alpha = result_s3["new_alpha"];
+    
+    // Step 4: Update alpha
+    arma::vec alpha_final = update_alpha(K, sm_alpha, xi_adjusted, sm_assign);
+    
+    // Record the result
+    iter_clus.col(i) = sm_assign;
+    adj_old_assign = sm_assign;
+    alpha_vec = alpha_final;
+    i += 1;
+  }
+  
+  result["cluster_assignment"] = iter_clus;
+  
+  return result;
+}
 
 
 
