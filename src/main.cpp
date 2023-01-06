@@ -15,17 +15,6 @@
 // - For Step 3, split-merge process when ci = cj and all clusters are already 
 //   active. I will always reject that proposed assignment.
 
-// Tasks: ----------------------------------------------------------------------
-// - Matt's Email (2022/12/31)
-//   * The rows of gamma_init should be unique. Otherwise, you are implying 
-//     that the probabilities across clusters are the same.
-//   * Instead of related the row of gamma_init to K, link gamma_init to K_init 
-//     instead.
-
-// Questions: ------------------------------------------------------------------
-// - For the gamma_init matrix, how can we determine that which rows are 
-//   duplicated? Consider only maximum only or consider the proportion?
-
 // User-defined function: ------------------------------------------------------
 // [[Rcpp::export]]
 Rcpp::List active_inactive(int K, arma::vec clus_assign){
