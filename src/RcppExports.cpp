@@ -11,18 +11,6 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
-// sample_clus
-int sample_clus(arma::vec norm_probs, arma::uvec active_clus);
-RcppExport SEXP _ClusterProj_sample_clus(SEXP norm_probsSEXP, SEXP active_clusSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::vec >::type norm_probs(norm_probsSEXP);
-    Rcpp::traits::input_parameter< arma::uvec >::type active_clus(active_clusSEXP);
-    rcpp_result_gen = Rcpp::wrap(sample_clus(norm_probs, active_clus));
-    return rcpp_result_gen;
-END_RCPP
-}
 // active_inactive
 Rcpp::List active_inactive(int K, arma::vec clus_assign);
 RcppExport SEXP _ClusterProj_active_inactive(SEXP KSEXP, SEXP clus_assignSEXP) {
@@ -32,6 +20,18 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type K(KSEXP);
     Rcpp::traits::input_parameter< arma::vec >::type clus_assign(clus_assignSEXP);
     rcpp_result_gen = Rcpp::wrap(active_inactive(K, clus_assign));
+    return rcpp_result_gen;
+END_RCPP
+}
+// sample_clus
+int sample_clus(arma::vec norm_probs, arma::uvec active_clus);
+RcppExport SEXP _ClusterProj_sample_clus(SEXP norm_probsSEXP, SEXP active_clusSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::vec >::type norm_probs(norm_probsSEXP);
+    Rcpp::traits::input_parameter< arma::uvec >::type active_clus(active_clusSEXP);
+    rcpp_result_gen = Rcpp::wrap(sample_clus(norm_probs, active_clus));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -154,16 +154,15 @@ BEGIN_RCPP
 END_RCPP
 }
 // cluster_func
-Rcpp::List cluster_func(int K, arma::vec old_assign, arma::vec alpha, arma::vec xi, arma::mat y, arma::mat gamma_hyper, double a_theta, double b_theta, int sm_iter, int all_iter, bool print_iter, int iter_print);
-RcppExport SEXP _ClusterProj_cluster_func(SEXP KSEXP, SEXP old_assignSEXP, SEXP alphaSEXP, SEXP xiSEXP, SEXP ySEXP, SEXP gamma_hyperSEXP, SEXP a_thetaSEXP, SEXP b_thetaSEXP, SEXP sm_iterSEXP, SEXP all_iterSEXP, SEXP print_iterSEXP, SEXP iter_printSEXP) {
+Rcpp::List cluster_func(int K, int K_init, arma::mat y, arma::vec xi, arma::mat gamma_hyper, double a_theta, double b_theta, int sm_iter, int all_iter, bool print_iter, int iter_print);
+RcppExport SEXP _ClusterProj_cluster_func(SEXP KSEXP, SEXP K_initSEXP, SEXP ySEXP, SEXP xiSEXP, SEXP gamma_hyperSEXP, SEXP a_thetaSEXP, SEXP b_thetaSEXP, SEXP sm_iterSEXP, SEXP all_iterSEXP, SEXP print_iterSEXP, SEXP iter_printSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< int >::type K(KSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type old_assign(old_assignSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type alpha(alphaSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type xi(xiSEXP);
+    Rcpp::traits::input_parameter< int >::type K_init(K_initSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type y(ySEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type xi(xiSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type gamma_hyper(gamma_hyperSEXP);
     Rcpp::traits::input_parameter< double >::type a_theta(a_thetaSEXP);
     Rcpp::traits::input_parameter< double >::type b_theta(b_thetaSEXP);
@@ -171,14 +170,14 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type all_iter(all_iterSEXP);
     Rcpp::traits::input_parameter< bool >::type print_iter(print_iterSEXP);
     Rcpp::traits::input_parameter< int >::type iter_print(iter_printSEXP);
-    rcpp_result_gen = Rcpp::wrap(cluster_func(K, old_assign, alpha, xi, y, gamma_hyper, a_theta, b_theta, sm_iter, all_iter, print_iter, iter_print));
+    rcpp_result_gen = Rcpp::wrap(cluster_func(K, K_init, y, xi, gamma_hyper, a_theta, b_theta, sm_iter, all_iter, print_iter, iter_print));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_ClusterProj_sample_clus", (DL_FUNC) &_ClusterProj_sample_clus, 2},
     {"_ClusterProj_active_inactive", (DL_FUNC) &_ClusterProj_active_inactive, 2},
+    {"_ClusterProj_sample_clus", (DL_FUNC) &_ClusterProj_sample_clus, 2},
     {"_ClusterProj_log_density_gamma", (DL_FUNC) &_ClusterProj_log_density_gamma, 2},
     {"_ClusterProj_log_allocate_prob", (DL_FUNC) &_ClusterProj_log_allocate_prob, 6},
     {"_ClusterProj_log_sum_exp", (DL_FUNC) &_ClusterProj_log_sum_exp, 1},
@@ -187,7 +186,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_ClusterProj_cluster_assign", (DL_FUNC) &_ClusterProj_cluster_assign, 6},
     {"_ClusterProj_split_merge", (DL_FUNC) &_ClusterProj_split_merge, 9},
     {"_ClusterProj_update_alpha", (DL_FUNC) &_ClusterProj_update_alpha, 4},
-    {"_ClusterProj_cluster_func", (DL_FUNC) &_ClusterProj_cluster_func, 12},
+    {"_ClusterProj_cluster_func", (DL_FUNC) &_ClusterProj_cluster_func, 11},
     {NULL, NULL, 0}
 };
 

@@ -10,38 +10,23 @@
 // - gamma_hyper is a matrix with K by J dimension.
 // - For the numerical stability, I will take logarithm function on the 
 //   probability term, especially for the allocation probability.
+// - For Step 1, if all clusters are already active, I will skip this step for 
+//   that iteration..
+// - For Step 3, split-merge process when ci = cj and all clusters are already 
+//   active. I will always reject that proposed assignment.
 
 // Tasks: ----------------------------------------------------------------------
-// * Done *
+// - Matt's Email (2022/12/31)
+//   * The rows of gamma_init should be unique. Otherwise, you are implying 
+//     that the probabilities across clusters are the same.
+//   * Instead of related the row of gamma_init to K, link gamma_init to K_init 
+//     instead.
 
-// Questions and how I fix it: -------------------------------------------------
-// - For Step 1, if all clusters are already active, can we randomly select one 
-//   of the active cluster?
-// * Solution: I will skip this step.
-// - For Step 3, split-merge process when ci = cj and all clusters are already 
-//   active.
-// * Solution: I will always reject that proposed assignment.
+// Questions: ------------------------------------------------------------------
+// - For the gamma_init matrix, how can we determine that which rows are 
+//   duplicated? Consider only maximum only or consider the proportion?
 
 // User-defined function: ------------------------------------------------------
-// [[Rcpp::export]]
-int sample_clus(arma::vec norm_probs, arma::uvec active_clus){
-  
-  /* Description: To run a multinomial distribution and get the reallocated 
-   *              cluster.
-   * Input: Normalized probability (norm_prob), active cluster
-   * Output: New assigned cluster
-   */
-  
-  int k = active_clus.size();
-  arma::imat C = arma::imat(k, 1);
-  rmultinom(1, norm_probs.begin(), k, C.colptr(0));
-  
-  arma::mat mat_index = arma::conv_to<arma::mat>::from(arma::index_max(C));
-  int new_clus = active_clus.at(mat_index(0, 0));
-  
-  return new_clus;
-}
-
 // [[Rcpp::export]]
 Rcpp::List active_inactive(int K, arma::vec clus_assign){
   Rcpp::List result;
@@ -60,8 +45,27 @@ Rcpp::List active_inactive(int K, arma::vec clus_assign){
   
   result["active"] = active_clus;
   result["inactive"] = inactive_clus;
-
+  
   return result;
+}
+
+// [[Rcpp::export]]
+int sample_clus(arma::vec norm_probs, arma::uvec active_clus){
+  
+  /* Description: To run a multinomial distribution and get the reallocated 
+   *              cluster.
+   * Input: Normalized probability (norm_prob), active cluster
+   * Output: New assigned cluster
+   */
+  
+  int k = active_clus.size();
+  arma::imat C = arma::imat(k, 1);
+  rmultinom(1, norm_probs.begin(), k, C.colptr(0));
+  
+  arma::mat mat_index = arma::conv_to<arma::mat>::from(arma::index_max(C));
+  int new_clus = active_clus.at(mat_index(0, 0));
+  
+  return new_clus;
 }
 
 // [[Rcpp::export]]
@@ -517,54 +521,105 @@ arma::vec update_alpha(int K, arma::vec alpha, arma::vec xi,
 
 // Final Function: -------------------------------------------------------------
 // [[Rcpp::export]]
-Rcpp::List cluster_func(int K, arma::vec old_assign, arma::vec alpha,
-                        arma::vec xi, arma::mat y, arma::mat gamma_hyper, 
+Rcpp::List cluster_func(int K, int K_init, arma::mat y,
+                        arma::vec xi, arma::mat gamma_hyper, 
                         double a_theta, double b_theta, int sm_iter, 
                         int all_iter, bool print_iter, int iter_print){
   Rcpp::List result;
   
-  /* Input: maximum cluster (K), previous cluster assignment, 
-   *        previous cluster weight (alpha), hyperparameter for cluster (xi),
-   *        data matrix (y), hyperparameter for the data (gamma),
-   *        hyperparameter (a_theta, b_theta), 
-   *        iteration for the split-merge process (sm_iter)
-   *        overall iteration (all_iter), print progress (print_iter),
-   *        if printed, preint every iter_print iteration.
-   * Output: new cluster weight, updated cluster assignment, 
-   *         number of active cluster in each iteration.
-   */ 
+  /* The function will let the user specify the hyperparameter, which are
+   * (1) gamma_hyper: hyperparameter for the data
+   * (2) xi: hyperparameter for cluster
+   * (3) a_theta and (4) b_theta
+   * 
+   * In addition, the user need to specify another two parameters, which are
+   * (1) K: the total possible number of clusters. 
+   * (2) K_init: the number of clusters for the initialization of the MCMC.
+   */
   
-  // Storing the active cluster for each iteration
-  arma::vec n_active = -1 * arma::ones(all_iter + 1);
-  arma::vec dum_unique = arma::unique(old_assign);
-  n_active.row(0) = dum_unique.size();
+  // K_init should less than or equal to K.
+  if(K_init > K){
+    Rcpp::Rcout << "K must greater than or equal to K_init." << std::endl;
+    Rcpp::Rcout << "Fixed: Let K equals to K_init." << std::endl;
+    K = K_init;
+  }
+  
+  // Problem about gamma matrix
+  if(gamma_hyper.n_rows != K or gamma_hyper.n_cols != y.n_cols){
+    Rcpp::Rcout << "Fixed: gamma_hyper" << std::endl;
+    
+    // row of the gamma_hyper must equal to K
+    if(gamma_hyper.n_rows > K){
+      gamma_hyper.shed_rows(K, gamma_hyper.n_rows - 1);
+    } else if(gamma_hyper.n_rows < K){
+      int diff_K = K - gamma_hyper.n_rows;
+      arma::mat extended_gamma = 
+        arma::ones(diff_K, 1) * arma::mean(gamma_hyper, 0);
+      gamma_hyper.insert_rows(gamma_hyper.n_rows, extended_gamma);
+    }
+    
+    // column of the gamma_hyper must equal to column of data
+    int J = y.n_cols;
+    if(gamma_hyper.n_cols > J){
+      gamma_hyper.shed_cols(J, gamma_hyper.n_cols - 1);
+    } else if(gamma_hyper.n_cols < J){
+      int diff_J = J - gamma_hyper.n_cols;
+      arma::mat extended_gamma = 
+        arma::mean(gamma_hyper, 1) * arma::ones(1, diff_J);
+      gamma_hyper.insert_cols(gamma_hyper.n_cols, extended_gamma);
+    }
+    
+    Rcpp::Rcout << gamma_hyper << std::endl;
+  }
+  
+  // Problem with xi
+  if(xi.size() != K){
+    Rcpp::Rcout << "Fixed: xi" << std::endl;
+    if(xi.size() < K){
+      int diff_K = K - xi.size();
+      double imputed_mean = arma::mean(arma::mean(xi));
+      arma::vec extended_xi = imputed_mean * arma::ones(diff_K);
+      xi.insert_rows(xi.size(), extended_xi);
+    } else if(xi.size() > K){
+      xi = xi.head_rows(K);
+    }
+    Rcpp::Rcout << xi << std::endl;
+  }
+  
+  /* By using the (fixed) gamma_hyper, (fixed) xi, and (fixed) K_init,
+   * the algorithm will initialize the cluster assignment and alpha.
+   */
+  
+  // Initial the alpha and cluster assignment
+  arma::vec old_assign = arma::conv_to<arma::vec>::
+    from(arma::randi(y.n_rows, arma::distr_param(1, K_init)));
+  
+  arma::vec alpha_vec = arma::zeros(K);
+  for(int k = 0; k < K_init; ++k){
+    if(xi.at(k) != 0){
+      alpha_vec.row(k).fill(R::rgamma(xi.at(k), 1.0));
+    }
+  }
   
   // Storing the cluster assignment for each iteration
-  arma::mat clus_assign = -1 * arma::ones(old_assign.size(), all_iter + 1);
-  clus_assign.col(0) = old_assign;
+  arma::mat clus_assign = -1 * arma::ones(old_assign.size(), all_iter);
+  arma::mat alpha_update = -1 * arma::ones(K, all_iter);
   
-  // Storing alpha vector
-  arma::mat alpha_update = -1 * arma::ones(alpha.size(), all_iter + 1);
-  alpha_update.col(0) = alpha;
-  
-  for(int i = 0; i < all_iter; ++i){
+  int i = 0;
+  while(i < all_iter){
     
+    // Print Progress
     if(print_iter == true){
       if((i+1) % iter_print == 0){
         Rcpp::Rcout << (i + 1) << std::endl;
       }
     }
     
-    // Initial value
-    arma::vec current_assign = clus_assign.col(i);
-    arma::vec current_alpha = alpha_update.col(i);
-    
     // Step 1: Expand Step
-    Rcpp::List result_s1 = expand_step(K, current_assign, current_alpha, 
-                                       xi, y, gamma_hyper, a_theta, b_theta);
+    Rcpp::List result_s1 = expand_step(K, old_assign, alpha_vec, xi, y, 
+                                       gamma_hyper, a_theta, b_theta);
     arma::vec expand_assign = result_s1["new_assign"];
     arma::vec expand_alpha = result_s1["new_alpha"];
-    
     
     // Step 2: Reallocation
     Rcpp::List result_s2 = cluster_assign(K, expand_assign, xi, y, 
@@ -581,56 +636,22 @@ Rcpp::List cluster_func(int K, arma::vec old_assign, arma::vec alpha,
     
     // Step 4: Update alpha
     arma::vec alpha_final = update_alpha(K, sm_alpha, xi, sm_assign);
-
+    
     // Record the result
-    clus_assign.col(i+1) = sm_assign;
-    alpha_update.col(i+1) = alpha_final;
+    clus_assign.col(i) = sm_assign;
+    alpha_update.col(i) = alpha_final;
+    
+    // Update the initial value for the next iteration
+    i += 1;
+    old_assign = sm_assign;
+    alpha_vec = alpha_final;
   }
   
-  result["alpha_update"] = alpha_update;
-  result["clus_assign"] = clus_assign;
+  result["alpha_update"] = alpha_update.t();
+  result["clus_assign"] = clus_assign.t();
   
   return result;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
