@@ -1,7 +1,7 @@
 [
     {
         "file": "/Users/kevinkvp/Desktop/Research/ClusterProj/src/main.cpp",
-        "file_last_write": 1672861477.0,
+        "file_last_write": 1672987385.0,
         "definitions": [
             {
                 "usr": "c:@F@active_inactive#I#$@N@arma@S@Col>#d#",
@@ -14,32 +14,12 @@
                 "hidden": false
             },
             {
-                "usr": "c:@F@check_unique_gamma#I#$@N@arma@S@Col>#d#$@N@arma@S@Mat>#d#",
-                "kind": 6,
-                "parent_name": "",
-                "name": "check_unique_gamma(int, arma::vec, arma::mat)",
-                "file": "/Users/kevinkvp/Desktop/Research/ClusterProj/src/main.cpp",
-                "line": 53,
-                "column": 12,
-                "hidden": false
-            },
-            {
-                "usr": "c:@F@xi_adjust#$@N@arma@S@Col>#d#",
-                "kind": 6,
-                "parent_name": "",
-                "name": "xi_adjust(arma::vec)",
-                "file": "/Users/kevinkvp/Desktop/Research/ClusterProj/src/main.cpp",
-                "line": 167,
-                "column": 11,
-                "hidden": false
-            },
-            {
                 "usr": "c:@F@sample_clus#$@N@arma@S@Col>#d#$@N@arma@S@Col>#i#",
                 "kind": 6,
                 "parent_name": "",
                 "name": "sample_clus(arma::vec, arma::uvec)",
                 "file": "/Users/kevinkvp/Desktop/Research/ClusterProj/src/main.cpp",
-                "line": 179,
+                "line": 53,
                 "column": 5,
                 "hidden": false
             },
@@ -49,7 +29,7 @@
                 "parent_name": "",
                 "name": "log_density_gamma(arma::rowvec, arma::rowvec)",
                 "file": "/Users/kevinkvp/Desktop/Research/ClusterProj/src/main.cpp",
-                "line": 198,
+                "line": 72,
                 "column": 8,
                 "hidden": false
             },
@@ -59,7 +39,7 @@
                 "parent_name": "",
                 "name": "log_allocate_prob(int, arma::vec, arma::vec, arma::mat, arma::mat, arma::uvec)",
                 "file": "/Users/kevinkvp/Desktop/Research/ClusterProj/src/main.cpp",
-                "line": 218,
+                "line": 92,
                 "column": 11,
                 "hidden": false
             },
@@ -69,7 +49,7 @@
                 "parent_name": "",
                 "name": "log_sum_exp(arma::vec)",
                 "file": "/Users/kevinkvp/Desktop/Research/ClusterProj/src/main.cpp",
-                "line": 271,
+                "line": 145,
                 "column": 11,
                 "hidden": false
             },
@@ -79,7 +59,7 @@
                 "parent_name": "",
                 "name": "adjust_alpha(int, arma::vec, arma::vec)",
                 "file": "/Users/kevinkvp/Desktop/Research/ClusterProj/src/main.cpp",
-                "line": 296,
+                "line": 170,
                 "column": 11,
                 "hidden": false
             },
@@ -89,7 +69,7 @@
                 "parent_name": "",
                 "name": "rdirichlet_cpp(int, arma::vec)",
                 "file": "/Users/kevinkvp/Desktop/Research/ClusterProj/src/main.cpp",
-                "line": 313,
+                "line": 187,
                 "column": 11,
                 "hidden": false
             },
@@ -99,7 +79,7 @@
                 "parent_name": "",
                 "name": "expand_step(int, arma::vec, arma::vec, arma::vec, arma::mat, arma::mat, double, double)",
                 "file": "/Users/kevinkvp/Desktop/Research/ClusterProj/src/main.cpp",
-                "line": 340,
+                "line": 214,
                 "column": 12,
                 "hidden": false
             },
@@ -109,7 +89,7 @@
                 "parent_name": "",
                 "name": "cluster_assign(int, arma::vec, arma::vec, arma::mat, arma::mat, arma::vec)",
                 "file": "/Users/kevinkvp/Desktop/Research/ClusterProj/src/main.cpp",
-                "line": 398,
+                "line": 272,
                 "column": 12,
                 "hidden": false
             },
@@ -119,7 +99,7 @@
                 "parent_name": "",
                 "name": "split_merge(int, arma::vec, arma::vec, arma::vec, arma::mat, arma::mat, double, double, int)",
                 "file": "/Users/kevinkvp/Desktop/Research/ClusterProj/src/main.cpp",
-                "line": 438,
+                "line": 312,
                 "column": 12,
                 "hidden": false
             },
@@ -129,27 +109,17 @@
                 "parent_name": "",
                 "name": "update_alpha(int, arma::vec, arma::vec, arma::vec)",
                 "file": "/Users/kevinkvp/Desktop/Research/ClusterProj/src/main.cpp",
-                "line": 616,
+                "line": 490,
                 "column": 11,
                 "hidden": false
             },
             {
-                "usr": "c:@F@cluster_func#I#$@N@arma@S@Col>#d#S0_#S0_#$@N@arma@S@Mat>#d#S1_#d#d#I#I#b#I#",
+                "usr": "c:@F@cluster_func#I#I#$@N@arma@S@Mat>#d#$@N@arma@S@Col>#d#S0_#d#d#I#I#b#I#",
                 "kind": 6,
                 "parent_name": "",
-                "name": "cluster_func(int, arma::vec, arma::vec, arma::vec, arma::mat, arma::mat, double, double, int, int, bool, int)",
+                "name": "cluster_func(int, int, arma::mat, arma::vec, arma::mat, double, double, int, int, bool, int)",
                 "file": "/Users/kevinkvp/Desktop/Research/ClusterProj/src/main.cpp",
-                "line": 650,
-                "column": 12,
-                "hidden": false
-            },
-            {
-                "usr": "c:@F@clus_func_new#I#I#I#$@N@arma@S@Mat>#d#S0_#$@N@arma@S@Col>#d#d#d#I#",
-                "kind": 6,
-                "parent_name": "",
-                "name": "clus_func_new(int, int, int, arma::mat, arma::mat, arma::vec, double, double, int)",
-                "file": "/Users/kevinkvp/Desktop/Research/ClusterProj/src/main.cpp",
-                "line": 727,
+                "line": 524,
                 "column": 12,
                 "hidden": false
             }

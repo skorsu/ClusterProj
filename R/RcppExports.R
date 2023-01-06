@@ -5,14 +5,6 @@ active_inactive <- function(K, clus_assign) {
     .Call(`_ClusterProj_active_inactive`, K, clus_assign)
 }
 
-check_unique_gamma <- function(K, old_assign, gamma_init) {
-    .Call(`_ClusterProj_check_unique_gamma`, K, old_assign, gamma_init)
-}
-
-xi_adjust <- function(previous_xi) {
-    .Call(`_ClusterProj_xi_adjust`, previous_xi)
-}
-
 sample_clus <- function(norm_probs, active_clus) {
     .Call(`_ClusterProj_sample_clus`, norm_probs, active_clus)
 }
@@ -49,11 +41,7 @@ update_alpha <- function(K, alpha, xi, old_assign) {
     .Call(`_ClusterProj_update_alpha`, K, alpha, xi, old_assign)
 }
 
-cluster_func <- function(K, old_assign, alpha, xi, y, gamma_hyper, a_theta, b_theta, sm_iter, all_iter, print_iter, iter_print) {
-    .Call(`_ClusterProj_cluster_func`, K, old_assign, alpha, xi, y, gamma_hyper, a_theta, b_theta, sm_iter, all_iter, print_iter, iter_print)
-}
-
-clus_func_new <- function(iter, K, K_init, data_mat, gamma_hyper, xi, a_theta, b_theta, sm_iter) {
-    .Call(`_ClusterProj_clus_func_new`, iter, K, K_init, data_mat, gamma_hyper, xi, a_theta, b_theta, sm_iter)
+cluster_func <- function(K, K_init, y, xi, gamma_hyper, a_theta, b_theta, sm_iter, all_iter, print_iter, iter_print) {
+    .Call(`_ClusterProj_cluster_func`, K, K_init, y, xi, gamma_hyper, a_theta, b_theta, sm_iter, all_iter, print_iter, iter_print)
 }
 
